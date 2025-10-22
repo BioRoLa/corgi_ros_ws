@@ -143,6 +143,7 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
        cd ~/corgi_ws/install
        git clone --branch fix-install-interface --single-branch https://github.com/hiho817/mip_sdk.git
        cd mip_sdk
+       git checkout v2.0.0
        mkdir build
        cd build
        cmake .. -DMIP_USE_SERIAL=ON -DCMAKE_PREFIX_PATH=$HOME/corgi_ws/install -DCMAKE_INSTALL_PREFIX=$HOME/corgi_ws/install
