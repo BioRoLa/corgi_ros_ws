@@ -48,8 +48,11 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
 * **PC / Nvidia Jetson**
     * **OS**: Ubuntu 20.04
     * **ROS**: [**ROS Noetic**](http://wiki.ros.org/noetic/Installation/Ubuntu) (with `catkin_tools`)
-        * **ros-noetic-joy** `sudo apt install ros-noetic-joy`
+        
     * **Simulator**: [**Webots**](https://cyberbotics.com/) (for simulation only)
+    * **Apt Dependencies**:
+      * **ros-noetic-joy** `sudo apt install ros-noetic-joy`
+      * **doxygen** `sudo apt-get install doxygen`
     * **Python Dependencies**:
         * `pip install numpy`
         * `pip install PyQt5`
