@@ -74,13 +74,13 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
 
     Use this structure to keep all related projects organized.
 
-    ```
+    ```bash
     mkdir ~/corgi_ws/
     ```
 
 2.  **Clone the Repository**
 
-    ```
+    ```bash
     cd ~/corgi_ws/
     git clone https://github.com/BioRoLa/corgi_ros_ws.git
     ```
@@ -88,7 +88,7 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
 3.  **Install All Dependencies**
 
     Follow the list in the [***Software***](#software) section to install all required libraries.
-    ```
+    ```bash
     cd ~/corgi_ws/
     mkdir install/
     ```
@@ -117,6 +117,25 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
       ```
     3. **grpc**
     Install gRPC: https://grpc.io/docs/languages/cpp/quickstart/
+      ```bash
+      export MY_INSTALL_DIR=$HOME/corgi_ws/install
+      mkdir -p $MY_INSTALL_DIR
+      export PATH="$MY_INSTALL_DIR/bin:$PATH"
+      sudo apt install -y cmake
+      sudo apt install -y build-essential autoconf libtool pkg-config
+      git clone --recurse-submodules -b v1.74.0 --depth 1 --shallow-submodules https://github.com/grpc/grpc
+      cd grpc
+      mkdir -p cmake/build
+      pushd cmake/build
+      cmake -DgRPC_INSTALL=ON \
+            -DgRPC_BUILD_TESTS=OFF \
+            -DCMAKE_CXX_STANDARD=17 \
+            -DCMAKE_INSTALL_PREFIX=$MY_INSTALL_DIR \
+            ../..
+      make -j 4
+      make install
+      popd
+    ```
 
     5. **MIP_SDK**
     Clone the `mip_sdk` repository and follow the installation instructions:
@@ -136,7 +155,7 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
 
     If you installed C++ dependencies to the recommended path, use the following command.
 
-    ```
+    ```bash
     cd ~/corgi_ws/corgi_ros_ws/
     catkin build -DLOCAL_PACKAGE_PATH=${HOME}/corgi_ws/install
     source devel/setup.bash
@@ -146,7 +165,7 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
 
     Add the following command to your `~/.bashrc` to source it automatically in new terminals.
 
-    ```
+    ```bash
     source ~/corgi_ws/corgi_ros_ws/devel/setup.bash
     ```
 
@@ -156,7 +175,7 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
 ### Running the Simulation
 To launch the Corgi robot in the Webots simulator:
 
-```
+```bash
 roslaunch corgi_sim run_simulation.launch
 ```
 
@@ -175,7 +194,7 @@ After launching the simulation, you can run other nodes to interact with the sim
 
     On the Jetson/PC, run the main launch file. This will start the ***panel***, ***data recorder***, ***force estimation***, and ***IMU*** nodes.
 
-    ```
+    ```bash
     roslaunch corgi_panel corgi_control_panel.launch
     ```
 
