@@ -59,6 +59,7 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
         * [**mip_sdk (v2.0.0)**](https://github.com/LORD-MicroStrain/mip_sdk/tree/v2.0.0) (***Important:*** You must modify its `CMakeLists.txt` at line 241, changing `src` to `include`.)
         * [**osqp (v0.6.3)**](https://github.com/osqp/osqp/tree/v0.6.3)
         * [**osqp-eigen**](https://github.com/robotology/osqp-eigen)
+        *  * [**grpc_core**](https://github.com/kyle1548/grpc_core)
 
 > ***CRITICAL INSTALLATION NOTE***
 > 
@@ -89,6 +90,32 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
     cd ~/corgi_ws/
     mkdir install/
     ```
+
+## 1. **yaml-cpp**
+Clone the `yaml-cpp` repository and follow the installation instructions:
+```bash
+cd install
+git clone https://github.com/jbeder/yaml-cpp.git
+cd yaml-cpp
+mkdir build && cd build
+cmake .. -DCMAKE_PREFIX_PATH=$HOME/corgi_ws/install -DCMAKE_INSTALL_PREFIX=$HOME/corgi_ws/install
+make -j16
+sudo make install
+```
+## 2. **Eigen**
+Clone the `Eigen` repository and follow the installation instructions:
+```bash
+cd install
+git clone git@gitlab.com:libeigen/eigen.git
+cd eigen
+mkdir build && cd build
+cmake .. -DCMAKE_PREFIX_PATH=$HOME/corgi_ws/install -DCMAKE_INSTALL_PREFIX=$HOME/corgi_ws/install
+make -j16
+sudo make install
+```
+## 3. **grpc**
+Install gRPC: https://grpc.io/docs/languages/cpp/quickstart/  
+
 
 4.  **Build the ROS Workspace**
 
