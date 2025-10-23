@@ -42,13 +42,12 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
 ### Software
 
 * **NI sbRIO-9629**
-    * [**fpga_driver**](https://github.com/Yatinghsu000627/fpga_driver)
-    * [**grpc_core**](https://github.com/kyle1548/grpc_core)
+    * [**fpga_driver**](https://github.com/BioRoLa/fpga_driver)
+    * [**grpc_core**](https://github.com/BioRoLa/grpc_core)
 
 * **PC / Nvidia Jetson**
     * **OS**: Ubuntu 20.04
     * **ROS**: [**ROS Noetic**](http://wiki.ros.org/noetic/Installation/Ubuntu) (with `catkin_tools`)
-        
     * **Simulator**: [**Webots**](https://cyberbotics.com/) (for simulation only)
     * **Apt Dependencies**:
       * **ros-noetic-joy** `sudo apt install ros-noetic-joy`
@@ -63,7 +62,7 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
         * [**mip_sdk (v2.0.0)**](https://github.com/LORD-MicroStrain/mip_sdk/tree/v2.0.0) (***Important:*** You must modify its `CMakeLists.txt` at line 241, changing `src` to `include`.)
         * [**osqp (v0.6.3)**](https://github.com/osqp/osqp/tree/v0.6.3)
         * [**osqp-eigen**](https://github.com/robotology/osqp-eigen)
-        * [**grpc_core**](https://github.com/kyle1548/grpc_core)
+        * [**grpc_core**](https://github.com/BioRoLa/grpc_core)
     
 
 > ***CRITICAL INSTALLATION NOTE***
@@ -118,27 +117,11 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
       make -j16
       sudo make install
       ```
-    3. **grpc**
-    Install gRPC: https://grpc.io/docs/languages/cpp/quickstart/
-      ```bash
-      export MY_INSTALL_DIR=$HOME/corgi_ws/install
-      mkdir -p $MY_INSTALL_DIR
-      export PATH="$MY_INSTALL_DIR/bin:$PATH"
-      sudo apt install -y cmake
-      sudo apt install -y build-essential autoconf libtool pkg-config
-      git clone --recurse-submodules -b v1.74.0 --depth 1 --shallow-submodules https://github.com/grpc/grpc
-      cd grpc
-      mkdir -p cmake/build
-      pushd cmake/build
-      cmake -DgRPC_INSTALL=ON \
-            -DgRPC_BUILD_TESTS=OFF \
-            -DCMAKE_CXX_STANDARD=17 \
-            -DCMAKE_INSTALL_PREFIX=$MY_INSTALL_DIR \
-            ../..
-      make -j 4
-      make install
-      popd
-    ```
+    3. **grpc_core**
+    Install gRPC & grpc_core as follows: [**grpc_core**](https://github.com/BioRoLa/grpc_core)
+
+    4. **osqp_eigen**
+    Install osqp_eigen as follows: [**osqp_eigen**](https://github.com/robotology/osqp-eigen)
 
     5. **MIP_SDK**
     Clone the `mip_sdk` repository and follow the installation instructions:
@@ -170,7 +153,8 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
     Add the following command to your `~/.bashrc` to source it automatically in new terminals.
 
     ```bash
-    source ~/corgi_ws/corgi_ros_ws/devel/setup.bash
+    echo "source ~/corgi_ws/corgi_ros_ws/devel/setup.bash" >> ~/.bashrc
+    source ~/.bashrc
     ```
 
 
