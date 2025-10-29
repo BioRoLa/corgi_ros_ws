@@ -79,7 +79,7 @@ void ModelPredictiveController::init_matrices(const double *ra, const double *rb
 }
 
 Eigen::VectorXd ModelPredictiveController::step(const Eigen::VectorXd &x, const Eigen::VectorXd &x_ref,
-                                                const bool *selection_matrix, std::vector<corgi_msgs::ForceState*> force_state_modules) {
+                                                const bool *selection_matrix, std::vector<corgi_msgs::msg::ForceState*> force_state_modules) {
     // Build prediction matrices
     Eigen::MatrixXd A_qp = Eigen::MatrixXd::Zero((N - 1) * n_x, n_x);
     Eigen::MatrixXd B_qp = Eigen::MatrixXd::Zero((N - 1) * n_x, (N - 1) * n_u);
@@ -189,7 +189,7 @@ Eigen::VectorXd ModelPredictiveController::step(const Eigen::VectorXd &x, const 
     return u_opt.head(n_u);
 }
 
-void check_contact_state(int swing_leg, std::vector<corgi_msgs::ContactState*> contact_state_modules){
+void check_contact_state(int swing_leg, std::vector<corgi_msgs::msg::ContactState*> contact_state_modules){
     switch (swing_leg) {
         case 0:
             contact_state_modules[0]->contact = false;

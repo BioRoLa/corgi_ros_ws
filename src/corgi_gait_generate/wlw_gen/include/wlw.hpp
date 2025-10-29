@@ -15,8 +15,8 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
-#include "ros/ros.h"
-#include "corgi_msgs/MotorCmdStamped.h"
+#include "rclcpp/rclcpp.hpp"
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
 
 #include "leg_model.hpp"
 #include "fitted_coefficient.hpp"

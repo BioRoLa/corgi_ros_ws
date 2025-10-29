@@ -1,47 +1,47 @@
 #include <iostream>
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
-#include "corgi_msgs/MotorCmdStamped.h"
-#include "corgi_msgs/MotorStateStamped.h"
-#include "corgi_msgs/TriggerStamped.h"
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
+#include <corgi_msgs/msg/motor_state_stamped.hpp>
+#include <corgi_msgs/msg/trigger_stamped.hpp>
 
 bool trigger = false;
-corgi_msgs::MotorStateStamped motor_state;
+corgi_msgs::msg::MotorStateStamped motor_state;
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg){
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
     trigger = msg.enable;
 }
 
-void motor_state_cb(const corgi_msgs::MotorStateStamped msg){
+void motor_state_cb(const corgi_msgs::msg::MotorStateStamped msg){
     motor_state = msg;
 }
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "corgi_rt_control");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Publisher motor_cmd_pub = nh.advertise<corgi_msgs::MotorCmdStamped>("motor/command", 1000);
-    ros::Subscriber motor_state_sub = nh.subscribe<corgi_msgs::MotorStateStamped>("motor/state", 1000, motor_state_cb);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1000, trigger_cb);
-    ros::Rate rate(1000);
+    auto nh = rclcpp::Node::make_shared("corgi_rt_control");
+    auto motor_cmd_pub = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1000);
+    auto motor_state_sub = nh.subscribe<corgi_msgs::msg::MotorStateStamped>("motor/state", 1000, motor_state_cb);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1000, trigger_cb);
+    rclcpp::Rate rate(1000);
 
-    corgi_msgs::MotorCmdStamped motor_cmd;
+    corgi_msgs::msg::MotorCmdStamped motor_cmd;
 
-    std::vector<corgi_msgs::MotorCmd*> motor_cmd_modules = {
+    std::vector<corgi_msgs::msg::MotorCmd*> motor_cmd_modules = {
         &motor_cmd.module_a,
         &motor_cmd.module_b,
         &motor_cmd.module_c,
         &motor_cmd.module_d
     };
 
-    std::vector<corgi_msgs::MotorState*> motor_state_modules = {
+    std::vector<corgi_msgs::msg::MotorState*> motor_state_modules = {
         &motor_state.module_a,
         &motor_state.module_b,
         &motor_state.module_c,
         &motor_state.module_d
     };
 
-    ROS_INFO("Leg Transform Starts\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiForceEstimation"), "Leg Transform Starts\n");
     
     for (auto& cmd : motor_cmd_modules){
         cmd->theta = 17/180.0*M_PI;
@@ -64,11 +64,11 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
 
-    ROS_INFO("Leg Transform Finished\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiForceEstimation"), "Leg Transform Finished\n");
     // int idx = 3;
     int seq = 0;
-    while (ros::ok()){
-        ros::spinOnce();
+    while (rclcpp::ok()){
+        rclcpp::spin_some(node);
 
         if (!trigger) {
             rate.sleep();
@@ -101,8 +101,8 @@ int main(int argc, char **argv) {
         //     }
         // }
         // else {
-        //     while (ros::ok()) {
-        //         ros::spinOnce();
+        //     while (rclcpp::ok()) {
+        //         rclcpp::spin_some(node);
         //         if (motor_cmd_modules[idx]->torque_r > 0) {
         //                 motor_cmd_modules[idx]->torque_r -= 0.00001;
         //             }
@@ -122,8 +122,8 @@ int main(int argc, char **argv) {
         // }
         // else {
         //     motor_cmd_modules[idx]->torque_l *= 0.35;
-        //     while (ros::ok()) {
-        //         ros::spinOnce();
+        //     while (rclcpp::ok()) {
+        //         rclcpp::spin_some(node);
         //         if (motor_cmd_modules[idx]->torque_l > 0) {
         //             motor_cmd_modules[idx]->torque_l -= 0.000001;
         //         }
@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
 
-    ROS_INFO("Real Time Trajectory Finished\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiForceEstimation"), "Real Time Trajectory Finished\n");
 
     ros::shutdown();
     

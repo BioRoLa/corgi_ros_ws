@@ -2,9 +2,9 @@
 // single execute wheeled mode
 
 int main(int argc, char **argv){
-    ROS_INFO("Wheeled mode test\n");
-    ros::init(argc, argv, "corgi_wheeled_test");
-    ros::NodeHandle nh;
+    RCLCPP_INFO(rclcpp::get_logger("CorgiWheeled"), "Wheeled mode test\n");
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("corgi_wheeled_test");
 
     //  Start an async spinner to run in parallel.
     ros::AsyncSpinner spinner(1);
@@ -23,8 +23,8 @@ int main(int argc, char **argv){
     WheeledCmd WheeledCmd("joystick");
     Wheeled wheeled(nh);
 
-    while (ros::ok()) {
-        // ros::spinOnce();
+    while (rclcpp::ok()) {
+        // rclcpp::spin_some(node);
     }
     return 0;
 }

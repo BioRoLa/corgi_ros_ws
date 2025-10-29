@@ -1,9 +1,19 @@
 cmake_minimum_required(VERSION 3.8)
 
+project(corgi_force_control LANGUAGES C CXX)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(rosgraph_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(corgi_msgs REQUIRED)
+find_package(corgi_utils REQUIRED)
+find_package(corgi_force_estimation REQUIRED)
+
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
 set(CMAKE_C_COMPILER "/usr/bin/gcc")
 set(CMAKE_CXX_COMPILER "/usr/bin/g++")
-
-project(corgi_force_control LANGUAGES C CXX)
 
 set (CMAKE_EXE_LINKER_FLAGS)
 set (CMAKE_CXX_STANDARD 17)
@@ -16,19 +26,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/build)
 set(corgi_msgs_DIR "${CMAKE_CURRENT_LIST_DIR}/../../devel/share/corgi_msgs/cmake")
 set(EIGEN3_INCLUDE_DIR "${LOCAL_PACKAGE_PATH}/include/eigen3")
 
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-find_package(catkin REQUIRED COMPONENTS roscpp std_msgs rosgraph_msgs geometry_msgs corgi_msgs corgi_utils corgi_force_estimation)
-
-catkin_package(
-  CATKIN_DEPENDS roscpp std_msgs rosgraph_msgs geometry_msgs corgi_msgs corgi_utils corgi_force_estimation
-)
-
 include_directories(
-  ${catkin_INCLUDE_DIRS}
   ${CMAKE_CURRENT_LIST_DIR}
   ${EIGEN3_INCLUDE_DIR}
   include
 )
+ament_export_dependencies(rclcpp std_msgs rosgraph_msgs geometry_msgs corgi_msgs corgi_utils corgi_force_estimation)
+ament_package()
 
 find_library(CORGI_UTILS corgi_utils)
 find_library(CORGI_FORCE_EST corgi_force_estimation)

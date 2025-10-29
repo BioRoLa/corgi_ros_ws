@@ -7,19 +7,19 @@
 #include <array>
 #include <string>
 
-#include "ros/ros.h"
-#include "corgi_msgs/MotorCmdStamped.h"
+#include "rclcpp/rclcpp.hpp"
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
 #include "walk_gait.hpp"
 #include "leg_model.hpp"
 #include "bezier.hpp"
 
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "walk_test");
-    ros::NodeHandle nh;
-    ros::Publisher motor_pub = nh.advertise<corgi_msgs::MotorCmdStamped>("motor/command", 1);
-    corgi_msgs::MotorCmdStamped motor_cmd;
-    std::array<corgi_msgs::MotorCmd*, 4> motor_cmd_modules = {
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("walk_test");
+    auto motor_pub = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1);
+    corgi_msgs::msg::MotorCmdStamped motor_cmd;
+    std::array<corgi_msgs::msg::MotorCmd*, 4> motor_cmd_modules = {
         &motor_cmd.module_a,
         &motor_cmd.module_b,
         &motor_cmd.module_c,
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 
     double CoM_bias = 0.0;
     int sampling_rate = 1000;
-    ros::Rate rate(sampling_rate);
+    rclcpp::Rate rate(sampling_rate);
     // double init_eta[8] = {1.7908786895256839, 0.7368824288764617, 1.1794001564068406, -0.07401410141135822, 1.1744876957173913, -1.8344700758454735e-15, 1.7909927830130310, 5.5466991499313485};
     double init_eta[8] = {1.7695243267183387, 0.7277016876093340, 1.2151854401036246,  0.21018258666216960, 1.2151854401036246, -0.21018258666216960000, 1.7695243267183387, -0.727701687609334};   // normal
     WalkGait walk_gait(true, CoM_bias, sampling_rate);
@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
     int count = 0;
 
     auto start = std::chrono::high_resolution_clock::now();
-    while (ros::ok()) {
+    while (rclcpp::ok()) {
     // for (int count=0; count<200000; ){
         count ++;
         velocity = 0.2*cos(count/1711.0);

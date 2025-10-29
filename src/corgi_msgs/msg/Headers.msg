@@ -1,3 +1,3 @@
 int32 seq
-time stamp
+builtin_interfaces/Time stamp
 string frame_id

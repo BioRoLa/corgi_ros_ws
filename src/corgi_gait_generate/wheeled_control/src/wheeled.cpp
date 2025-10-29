@@ -4,7 +4,7 @@
 Wheeled::Wheeled()
 {
     // Publishers
-    motor_cmd_pub_ = wnh_.advertise<corgi_msgs::MotorCmdStamped>("/motor/command", 1000);
+    motor_cmd_pub_ = wnh_.advertise<corgi_msgs::msg::MotorCmdStamped>("/motor/command", 1000);
 
     // Subscribers
     wheel_cmd_sub_ = wnh_.subscribe("/wheel_cmd", 1000, &Wheeled::wheelCmdCallback, this);
@@ -13,7 +13,7 @@ Wheeled::Wheeled()
     
 }
 
-void Wheeled::wheelCmdCallback(const corgi_msgs::WheelCmd::ConstPtr& msg)
+void Wheeled::wheelCmdCallback(const corgi_msgs::msg::WheelCmd::ConstSharedPtr& msg)
 {
         // std::cout << "Received" << std::endl;
         current_wheel_cmd_ = *msg;
@@ -25,7 +25,7 @@ void Wheeled::wheelCmdCallback(const corgi_msgs::WheelCmd::ConstPtr& msg)
             if (current_wheel_cmd_.stop == true){
                 beta_adjustment = 0;
             }
-            current_motor_cmd_.header.stamp = ros::Time::now();
+            current_motor_cmd_.header.stamp = rclcpp::Time::now();
             for (int i = 0; i < 4; ++i) {
                 motor_cmds[i]->theta = 17 * (M_PI / 180.0);
                 if (i == 1 || i == 2) {
@@ -53,7 +53,7 @@ void Wheeled::wheelCmdCallback(const corgi_msgs::WheelCmd::ConstPtr& msg)
                 beta_adjustment_l = -beta_adjustment_l; // Reverse adjustment if direction is 0
                 beta_adjustment_r = -beta_adjustment_r; // Reverse adjustment if direction is 0
             }
-            current_motor_cmd_.header.stamp = ros::Time::now();
+            current_motor_cmd_.header.stamp = rclcpp::Time::now();
             for (size_t i = 0; i < 4; ++i) {
                 motor_cmds[i]->theta = 17 * (M_PI / 180.0);
                 if (i == 1 || i == 2) {
@@ -81,7 +81,7 @@ void Wheeled::wheelCmdCallback(const corgi_msgs::WheelCmd::ConstPtr& msg)
                 beta_adjustment_l = -beta_adjustment_l; // Reverse adjustment if direction is 0
                 beta_adjustment_r = -beta_adjustment_r; // Reverse adjustment if direction is 0
             }
-            current_motor_cmd_.header.stamp = ros::Time::now();
+            current_motor_cmd_.header.stamp = rclcpp::Time::now();
             for (size_t i = 0; i < 4; ++i) {
                 motor_cmds[i]->theta = 17 * (M_PI / 180.0);
                 if (i == 1 || i == 2) {
@@ -102,21 +102,22 @@ void Wheeled::wheelCmdCallback(const corgi_msgs::WheelCmd::ConstPtr& msg)
         motor_cmd_pub_.publish(current_motor_cmd_);
 }
 
-void Wheeled::motorsStateCallback(const corgi_msgs::MotorStateStamped::ConstPtr& msg)
+void Wheeled::motorsStateCallback(const corgi_msgs::msg::MotorStateStamped::ConstSharedPtr& msg)
 {
     current_motor_state_ = *msg;
 }
 
-void Wheeled::steerStateCallback(const corgi_msgs::SteeringCmdStamped::ConstPtr& msg)
+void Wheeled::steerStateCallback(const corgi_msgs::msg::SteeringCmdStamped::ConstSharedPtr& msg)
 {
     current_steer_cmd_ = *msg;
 }
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "wheel_control");
+    rclcpp::init(argc, argv);
+    auto node = rclcpp::Node::make_shared("wheel_control");
     JoystickControl node;
     Wheeled wheel_node;
-    ros::spin();
+    rclcpp::spin(node);
     return 0;
 }

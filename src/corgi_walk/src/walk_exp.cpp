@@ -7,9 +7,9 @@
 #include <array>
 #include <string>
 
-#include "ros/ros.h"
-#include "corgi_msgs/MotorCmdStamped.h"
-#include "corgi_msgs/TriggerStamped.h"
+#include "rclcpp/rclcpp.hpp"
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
+#include <corgi_msgs/msg/trigger_stamped.hpp>
 #include "walk_gait.hpp"
 #include "leg_model.hpp"
 #include "bezier.hpp"
@@ -17,19 +17,19 @@
 #define INIT_THETA (M_PI*17.0/180.0)
 #define INIT_BETA (0.0)
 
-corgi_msgs::TriggerStamped trigger_msg;
+corgi_msgs::msg::TriggerStamped trigger_msg;
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg) {
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg) {
     trigger_msg = msg;
 }//end trigger_cb
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "walk_test");
-    ros::NodeHandle nh;
-    ros::Publisher motor_pub = nh.advertise<corgi_msgs::MotorCmdStamped>("motor/command", 1);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1, trigger_cb);
-    corgi_msgs::MotorCmdStamped motor_cmd;
-    std::array<corgi_msgs::MotorCmd*, 4> motor_cmd_modules = {
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("walk_test");
+    auto motor_pub = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1, trigger_cb);
+    corgi_msgs::msg::MotorCmdStamped motor_cmd;
+    std::array<corgi_msgs::msg::MotorCmd*, 4> motor_cmd_modules = {
         &motor_cmd.module_a,
         &motor_cmd.module_b,
         &motor_cmd.module_c,
@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
     double max_cal_time = 0.0;
 
     /* Initial variable */
-    ros::Rate rate(sampling_rate);
+    rclcpp::Rate rate(sampling_rate);
     WalkGait walk_gait(false, CoM_bias[0], sampling_rate);
     std::array<std::array<double, 4>, 2> eta_list = {{{INIT_THETA, INIT_THETA, INIT_THETA, INIT_THETA},
                                                       {INIT_BETA , INIT_BETA , INIT_BETA , INIT_BETA }}};   // init eta (wheel mode)
@@ -83,9 +83,9 @@ int main(int argc, char** argv) {
     walk_gait.set_stand_height(stand_height);
     walk_gait.set_step_length(step_length);
     walk_gait.set_step_height(step_height);
-    while (ros::ok()) {
+    while (rclcpp::ok()) {
         auto one_loop_start = std::chrono::high_resolution_clock::now();
-        ros::spinOnce();
+        rclcpp::spin_some(node);
         if (state == END) {
             break;
         }//end if

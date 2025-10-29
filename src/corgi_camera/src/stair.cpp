@@ -1,5 +1,5 @@
-#include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
+#include "rclcpp/rclcpp.hpp"
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_types.h>
@@ -19,18 +19,18 @@ public:
       1, &StairDistance::cloudCb, this);
 
     // 發佈第一階踏板平面 inliers
-    plane_pub_ = nh_.advertise<sensor_msgs::PointCloud2>(
+    plane_pub_ = nh_.advertise<sensor_msgs::msg::PointCloud2>(
       "first_step_plane", 1);
 
-    ROS_INFO("StairDistance node ready, will publish plane to /first_step_plane");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiCamera"), "StairDistance node ready, will publish plane to /first_step_plane");
   }
 
 private:
-  ros::NodeHandle nh_;
+  rclcpp::Node nh_;
   ros::Subscriber sub_;
   ros::Publisher plane_pub_;
 
-  void cloudCb(const sensor_msgs::PointCloud2ConstPtr& msg) {
+  void cloudCb(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg) {
     // 1) 轉成 PCL
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud(
       new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -51,7 +51,7 @@ private:
       new pcl::PointCloud<pcl::PointXYZRGB>);
     pass.filter(*no_ground);
     if (no_ground->empty()) {
-      ROS_WARN("No points after ground removal");
+      RCLCPP_WARN(rclcpp::get_logger("CorgiCamera"), "No points after ground removal");
       return;
     }
 
@@ -67,7 +67,7 @@ private:
     pcl::ModelCoefficients coeff;
     seg.segment(*inliers, coeff);
     if (inliers->indices.empty()) {
-      ROS_WARN("No plane found");
+      RCLCPP_WARN(rclcpp::get_logger("CorgiCamera"), "No plane found");
       return;
     }
 
@@ -78,7 +78,7 @@ private:
     float norm = std::sqrt(a*a + b*b + c*c);
     float nz = c / norm;
     if (std::fabs(nz) < 0.9f) {
-      ROS_WARN("Plane not horizontal (nz=%.2f)", nz);
+      RCLCPP_WARN(rclcpp::get_logger("CorgiCamera"), "Plane not horizontal (nz=%.2f)", nz);
       return;
     }
 
@@ -92,7 +92,7 @@ private:
     extract.filter(*plane_cloud);
 
     // 7) 發佈 plane_cloud 到 first_step_plane
-    sensor_msgs::PointCloud2 out_msg;
+    sensor_msgs::msg::PointCloud2 out_msg;
     pcl::toROSMsg(*plane_cloud, out_msg);
     out_msg.header = msg->header;
     plane_pub_.publish(out_msg);
@@ -103,14 +103,15 @@ private:
     float cx = centroid[0], cy = centroid[1], cz = centroid[2];
     float horizontal_dist = std::sqrt(cx*cx + cy*cy);
 
-    ROS_INFO("First step centroid (%.3f, %.3f, %.3f) → horizontal dist: %.3f m",
+    RCLCPP_INFO(rclcpp::get_logger("CorgiCamera"), "First step centroid (%.3f, %.3f, %.3f) → horizontal dist: %.3f m",
              cx, cy, cz, horizontal_dist);
   }
 };
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "stair_distance");
+  rclcpp::init(argc, argv);
+  auto node = rclcpp::Node::make_shared("stair_distance");
   StairDistance node;
-  ros::spin();
+  rclcpp::spin(node);
   return 0;
 }

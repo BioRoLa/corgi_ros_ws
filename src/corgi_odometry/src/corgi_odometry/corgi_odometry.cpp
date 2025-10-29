@@ -40,7 +40,7 @@ Eigen::Vector3f a;
 Eigen::Vector3f w;
 Eigen::Quaternionf q;
 
-geometry_msgs::Vector3 prev_v;
+geometry_msgs::msg::Vector3 prev_v;
 Eigen::Vector3f filtered_position;
 
 bool exclude[4];
@@ -54,12 +54,12 @@ float alpha_rh = -100;
 float alpha_lh = -100;
 
 Eigen::Matrix3f P_cov;
-corgi_msgs::MotorStateStamped motor_state;
-sensor_msgs::Imu imu;
+corgi_msgs::msg::MotorStateStamped motor_state;
+sensor_msgs::msg::Imu imu;
 
 
 // Callbacks
-void trigger_cb(const corgi_msgs::TriggerStamped msg){
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
     trigger = msg.enable;
 
     if (RECORD_DATA){output_file_name = msg.output_filename;}
@@ -88,37 +88,37 @@ void trigger_cb(const corgi_msgs::TriggerStamped msg){
             // Initialize the CSV file.
             logger.initCSV(output_file_path, odo_headers);
 
-            ROS_INFO("Saving data to %s\n", output_file_name.c_str());
+            RCLCPP_INFO(rclcpp::get_logger("CorgiOdometry"), "Saving data to %s\n", output_file_name.c_str());
         }
     }
     else {
         if(logger.init){
             logger.finalizeCSV();
-            ROS_INFO("Saved data to %s", output_file_name.c_str());
+            RCLCPP_INFO(rclcpp::get_logger("CorgiOdometry"), "Saved data to %s", output_file_name.c_str());
         }
     }
 }
 
-void motor_state_cb(const corgi_msgs::MotorStateStamped state){
+void motor_state_cb(const corgi_msgs::msg::MotorStateStamped state){
     motor_state = state;
 }
 
-void imu_cb(const sensor_msgs::Imu msg){
+void imu_cb(const sensor_msgs::msg::Imu msg){
     imu = msg;
     imu.angular_velocity.x = 0.0;
 }
 
-void contact_cb(const corgi_msgs::ContactStateStamped msg){
+void contact_cb(const corgi_msgs::msg::ContactStateStamped msg){
     exclude[0] = !msg.module_a.contact;
     exclude[1] = !msg.module_b.contact;
     exclude[2] = !msg.module_c.contact;
     exclude[3] = !msg.module_d.contact;
 }
 
-geometry_msgs::Vector3 low_pass_filter(const geometry_msgs::Vector3 &input, const geometry_msgs::Vector3 &prev_input, float cutoff_freq, float sample_rate) {
+geometry_msgs::msg::Vector3 low_pass_filter(const geometry_msgs::msg::Vector3 &input, const geometry_msgs::msg::Vector3 &prev_input, float cutoff_freq, float sample_rate) {
     // Calculate the alpha value for the low-pass filter
     double alpha = 1.0 / (1.0 + (cutoff_freq / sample_rate));
-    geometry_msgs::Vector3 output;
+    geometry_msgs::msg::Vector3 output;
     output.x = alpha * input.x + (1 - alpha) * prev_input.x;
     output.y = alpha * input.y + (1 - alpha) * prev_input.y;
     output.z = alpha * input.z + (1 - alpha) * prev_input.z;
@@ -154,30 +154,30 @@ void Encoder::init(float dt){
 }
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "corgi_odometry");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
+    auto nh = rclcpp::Node::make_shared("corgi_odometry");
 
     // ROS Publishers
-    ros::Publisher velocity_pub = nh.advertise<geometry_msgs::Vector3>("odometry/velocity", 10);
-    ros::Publisher position_pub = nh.advertise<geometry_msgs::Vector3>("odometry/position", 10);
+    auto velocity_pub = nh.advertise<geometry_msgs::msg::Vector3>("odometry/velocity", 10);
+    auto position_pub = nh.advertise<geometry_msgs::msg::Vector3>("odometry/position", 10);
 
     // ROS Subscribers
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", ODOM_ESTIMATOR_RATE, trigger_cb);
-    ros::Subscriber motor_state_sub = nh.subscribe<corgi_msgs::MotorStateStamped>("motor/state", ODOM_ESTIMATOR_RATE, motor_state_cb);
-    ros::Subscriber imu_sub = nh.subscribe<sensor_msgs::Imu>("imu", ODOM_ESTIMATOR_RATE, imu_cb);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", ODOM_ESTIMATOR_RATE, trigger_cb);
+    auto motor_state_sub = nh.subscribe<corgi_msgs::msg::MotorStateStamped>("motor/state", ODOM_ESTIMATOR_RATE, motor_state_cb);
+    auto imu_sub = nh.subscribe<sensor_msgs::msg::Imu>("imu", ODOM_ESTIMATOR_RATE, imu_cb);
 
     // Publishers for filtered velocity and position (work if FILTE_VEL is true)
-    ros::Publisher filtered_velocity_pub = nh.advertise<geometry_msgs::Vector3>("odometry/filtered_velocity", 10);
-    ros::Publisher filtered_position_pub = nh.advertise<geometry_msgs::Vector3>("odometry/filtered_position", 10);
+    auto filtered_velocity_pub = nh.advertise<geometry_msgs::msg::Vector3>("odometry/filtered_velocity", 10);
+    auto filtered_position_pub = nh.advertise<geometry_msgs::msg::Vector3>("odometry/filtered_position", 10);
 
     // Contact state publisher
-    ros::Publisher contact_pub = nh.advertise<corgi_msgs::ContactStateStamped>("odometry/contact", ODOM_ESTIMATOR_RATE);
+    auto contact_pub = nh.advertise<corgi_msgs::msg::ContactStateStamped>("odometry/contact", ODOM_ESTIMATOR_RATE);
     // Contact state subscriber
-    ros::Subscriber contact_sub = nh.subscribe<corgi_msgs::ContactStateStamped>("odometry/contact", ODOM_ESTIMATOR_RATE, contact_cb);
+    auto contact_sub = nh.subscribe<corgi_msgs::msg::ContactStateStamped>("odometry/contact", ODOM_ESTIMATOR_RATE, contact_cb);
 
     Eigen::initParallel();
-    ros::Rate rate(ODOM_ESTIMATOR_RATE);
+    rclcpp::Rate rate(ODOM_ESTIMATOR_RATE);
 
     /* Estimate model initialization */
 
@@ -245,8 +245,8 @@ int main(int argc, char **argv) {
     filter.threshold = THRESHOLD;
     filter.init(x);
 
-    while (ros::ok()){
-        ros::spinOnce();
+    while (rclcpp::ok()){
+        rclcpp::spin_some(node);
 
         if(trigger){
             if (!initialized) {
@@ -310,18 +310,18 @@ int main(int argc, char **argv) {
             p += rot * R * R_init.transpose() * x.segment(3 * J - 3, 3) * dt;
             
             // Print the counter number using ROS_INFO
-            ROS_INFO("Counter: %d", counter);
-            ROS_INFO("Estimated Position: %f, %f, %f", p(0), p(1), p(2));
-            ROS_INFO("Estimated Velocity: %f, %f, %f", x(3 * J - 3), x(3 * J - 2), x(3 * J - 1));
+            RCLCPP_INFO(rclcpp::get_logger("CorgiOdometry"), "Counter: %d", counter);
+            RCLCPP_INFO(rclcpp::get_logger("CorgiOdometry"), "Estimated Position: %f, %f, %f", p(0), p(1), p(2));
+            RCLCPP_INFO(rclcpp::get_logger("CorgiOdometry"), "Estimated Velocity: %f, %f, %f", x(3 * J - 3), x(3 * J - 2), x(3 * J - 1));
 
             // Publish the estimated velocity and position
-            geometry_msgs::Vector3 velocity_msg;
+            geometry_msgs::msg::Vector3 velocity_msg;
             velocity_msg.x = x(3 * J - 3);
             velocity_msg.y = x(3 * J - 2);
             velocity_msg.z = x(3 * J - 1);
             velocity_pub.publish(velocity_msg);
 
-            geometry_msgs::Vector3 position_msg;
+            geometry_msgs::msg::Vector3 position_msg;
             position_msg.x = p(0);
             position_msg.y = p(1);
             position_msg.z = p(2);
@@ -329,7 +329,7 @@ int main(int argc, char **argv) {
 
             if (PUB_CONTACT){
                 // Publish contact state (1 for contact, 0 for no contact, higher score for non-contact)
-                corgi_msgs::ContactStateStamped contact_msg;
+                corgi_msgs::msg::ContactStateStamped contact_msg;
                 contact_msg.module_a.contact = !filter.exclude[0];
                 contact_msg.module_b.contact = !filter.exclude[1];
                 contact_msg.module_c.contact = !filter.exclude[2];
@@ -358,7 +358,7 @@ int main(int argc, char **argv) {
 
                 if (FILTE_VEL){
 
-                    geometry_msgs::Vector3 filtered_velocity_msg;
+                    geometry_msgs::msg::Vector3 filtered_velocity_msg;
                     float cutoff_freq = FILTE_VEL_CUT_OFF_FREQ; //Hz
                     filtered_velocity_msg = low_pass_filter(velocity_msg, prev_v, cutoff_freq, ODOM_ESTIMATOR_RATE);
                     prev_v = filtered_velocity_msg;
@@ -368,7 +368,7 @@ int main(int argc, char **argv) {
                     filtered_velocity << filtered_velocity_msg.x, filtered_velocity_msg.y, filtered_velocity_msg.z;
                     filtered_position += rot * R * R_init.transpose() * filtered_velocity * dt;
 
-                    geometry_msgs::Vector3 filtered_position_msg;
+                    geometry_msgs::msg::Vector3 filtered_position_msg;
                     filtered_position_msg.x = filtered_position(0);
                     filtered_position_msg.y = filtered_position(1);
                     filtered_position_msg.z = filtered_position(2);

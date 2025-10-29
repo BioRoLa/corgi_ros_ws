@@ -7,7 +7,7 @@ JoystickControl::JoystickControl()
   , last_direction_(false)
   , current_velocity_(0.0)
 {
-  ros::NodeHandle pnh("~");
+  rclcpp::Node pnh("~");
 
   // Load parameters (or set defaults)
   pnh.param("axis_left_right",   axis_left_right_,   3);
@@ -17,9 +17,9 @@ JoystickControl::JoystickControl()
   pnh.param("button_reset",      button_reset_,       0);
 
   // Publishers
-  steering_cmd_pub_ = nh_.advertise<corgi_msgs::SteeringCmdStamped>("/steer/command", 1);
-  wheel_cmd_pub_    = nh_.advertise<corgi_msgs::WheelCmd>("wheel_cmd", 1);
-  debug_pub_        = nh_.advertise<std_msgs::String>("debug_info",   10);
+  steering_cmd_pub_ = nh_.advertise<corgi_msgs::msg::SteeringCmdStamped>("/steer/command", 1);
+  wheel_cmd_pub_    = nh_.advertise<corgi_msgs::msg::WheelCmd>("wheel_cmd", 1);
+  debug_pub_        = nh_.advertise<std_msgs::msg::String>("debug_info",   10);
 
   // Subscribers
   steering_state_sub_ = nh_.subscribe("/steer/state", 1,
@@ -29,47 +29,47 @@ JoystickControl::JoystickControl()
 
   // Create timer at 1 kHz => 0.001 seconds
   wheel_cmd_timer_ = nh_.createTimer(
-      ros::Duration(0.001),  // 1 ms
+      rclcpp::Duration(0.001),  // 1 ms
       &JoystickControl::wheelCmdTimerCallback,
       this);
   steering_cmd_timer_= nh_.createTimer(
-      ros::Duration(0.001),  // 1 ms
+      rclcpp::Duration(0.001),  // 1 ms
       &JoystickControl::steerCmdTimerCallback,
       this);
   // Initialize last_wheel_cmd_ => stop=true
-  last_wheel_cmd_.header.stamp = ros::Time::now();
+  last_wheel_cmd_.header.stamp = rclcpp::Time::now();
   last_wheel_cmd_.stop         = true;
   last_wheel_cmd_.direction    = false;
   last_wheel_cmd_.velocity     = 0.0f;
 }
 
-void JoystickControl::steeringStateCallback(const corgi_msgs::SteeringStateStamped::ConstPtr& msg)
+void JoystickControl::steeringStateCallback(const corgi_msgs::msg::SteeringStateStamped::ConstSharedPtr& msg)
 {
   current_steering_state_ = *msg;
 }
 
 // Called at 1 kHz
-void JoystickControl::wheelCmdTimerCallback(const ros::TimerEvent&)
+void JoystickControl::wheelCmdTimerCallback(const rclcpp::TimerEvent&)
 {
   // If stop=false => continuously publish at 1000 Hz
   if (!last_wheel_cmd_.stop)
   {
-    last_wheel_cmd_.header.stamp = ros::Time::now();
+    last_wheel_cmd_.header.stamp = rclcpp::Time::now();
     wheel_cmd_pub_.publish(last_wheel_cmd_);
   }
 }
 
-void JoystickControl::steerCmdTimerCallback(const ros::TimerEvent&)
+void JoystickControl::steerCmdTimerCallback(const rclcpp::TimerEvent&)
 {
   // If stop=false => continuously publish at 1000 Hz
   if (steer.voltage != 0.0)
   {
-    steer.header.stamp = ros::Time::now();
+    steer.header.stamp = rclcpp::Time::now();
     steering_cmd_pub_.publish(steer);
   }
 }
 
-void JoystickControl::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
+void JoystickControl::joyCallback(const sensor_msgs::msg::Joy::ConstSharedPtr& joy)
 {
   // Example logic:
   //  - Check reset button => set stop=true
@@ -83,7 +83,7 @@ void JoystickControl::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
                     && joy->buttons[button_reset_] == 1);
   if (reset_now && !was_reset_pressed_)
   {
-    std_msgs::String dbg;
+    std_msgs::msg::String dbg;
     dbg.data = "[JoyCB] Reset => stop=true, velocity=0, angle=0, hold=OFF";
     debug_pub_.publish(dbg);
 
@@ -93,15 +93,15 @@ void JoystickControl::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
     // Steering reset => angle=0
     {
       
-      steer.header.stamp = ros::Time::now();
+      steer.header.stamp = rclcpp::Time::now();
       steer.angle   = 0.0;
       steer.voltage = 0;
       steering_cmd_pub_.publish(steer);
     }
 
     // Wheel => stop=true, velocity=0
-    corgi_msgs::WheelCmd wheel;
-    wheel.header.stamp = ros::Time::now();
+    corgi_msgs::msg::WheelCmd wheel;
+    wheel.header.stamp = rclcpp::Time::now();
     wheel.stop      = true;
     wheel.direction = false;
     wheel.velocity  = 0.0f;
@@ -117,7 +117,7 @@ void JoystickControl::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
   if (hold_now && !was_hold_pressed_)
   {
     hold_active_ = !hold_active_;
-    std_msgs::String dbg;
+    std_msgs::msg::String dbg;
     dbg.data = "[JoyCB] Toggled hold => " + std::string(hold_active_ ? "ON" : "OFF");
     debug_pub_.publish(dbg);
 
@@ -125,7 +125,7 @@ void JoystickControl::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
     {
       // Force stop=false => keep rolling
       last_wheel_cmd_.stop = false;
-      last_wheel_cmd_.header.stamp = ros::Time::now();
+      last_wheel_cmd_.header.stamp = rclcpp::Time::now();
       wheel_cmd_pub_.publish(last_wheel_cmd_);
     }
   }
@@ -134,8 +134,8 @@ void JoystickControl::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
   // 3) SteeringCmd => e.g. if current_state==true => analog angle
   if (current_steering_state_.current_state)
   {
-    // corgi_msgs::SteeringCmdStamped steer;
-    steer.header.stamp = ros::Time::now();
+    // corgi_msgs::msg::SteeringCmdStamped steer;
+    steer.header.stamp = rclcpp::Time::now();
     if ((int)joy->axes.size() > axis_left_right_)
     {
       double lr = joy->axes[axis_left_right_];
@@ -150,8 +150,8 @@ void JoystickControl::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
   }
 
   // 4) WheelCmd => direction axis => if hold=OFF
-  corgi_msgs::WheelCmd wheel;
-  wheel.header.stamp = ros::Time::now();
+  corgi_msgs::msg::WheelCmd wheel;
+  wheel.header.stamp = rclcpp::Time::now();
 
   bool stop = true;
   bool dir  = false;
@@ -209,8 +209,9 @@ double JoystickControl::clamp(double value, double min_val, double max_val)
 
 // int main(int argc, char** argv)
 // {
-//   ros::init(argc, argv, "joystick_control");
+//   rclcpp::init(argc, argv);
+   auto node = rclcpp::Node::make_shared("joystick_control");
 //   JoystickControl node;
-//   ros::spin();
+//   rclcpp::spin(node);
 //   return 0;
 // }

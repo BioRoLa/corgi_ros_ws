@@ -1,5 +1,5 @@
-#include <ros/ros.h>
-#include <std_msgs/String.h>
+#include "rclcpp/rclcpp.hpp"
+#include <std_msgs/msg/string.hpp>
 #include <termios.h>
 #include <signal.h>
 #include <stdio.h>
@@ -18,9 +18,9 @@ void quit(int sig)
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "teleop_twist_keyboard");
-  ros::NodeHandle nh;
-  ros::Publisher teleop_pub = nh.advertise<std_msgs::String>("teleop_keys", 1);
+  rclcpp::init(argc, argv);
+  auto nh = rclcpp::Node::make_shared("teleop_twist_keyboard");
+  auto teleop_pub = nh.advertise<std_msgs::msg::String>("teleop_keys", 1);
 
   // Display instructions and mapping
   puts("Reading from the keyboard and Publishing to Twist!");
@@ -54,17 +54,17 @@ int main(int argc, char** argv)
   signal(SIGINT, quit);
 
   char c;
-  while (ros::ok())
+  while (rclcpp::ok())
   {
     if (read(kfd, &c, 1) < 0)
     {
       perror("read()");
       exit(-1);
     }
-    std_msgs::String msg;
+    std_msgs::msg::String msg;
     msg.data = std::string(1, c);
     teleop_pub.publish(msg);
-    ros::spinOnce();
+    rclcpp::spin_some(node);
   }
   return 0;
 }

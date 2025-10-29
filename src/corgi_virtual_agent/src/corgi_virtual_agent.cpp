@@ -1,6 +1,6 @@
 #include <iostream>
 #include <mutex>
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 #include "NodeHandler.h"
 #include "Motor.pb.h"
@@ -90,7 +90,8 @@ void steer_cmd_cb(const steering_msg::SteeringCmdStamped cmd) {
 }
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "corgi_virtual_agent");
+    rclcpp::init(argc, argv);
+    auto node = rclcpp::Node::make_shared("corgi_virtual_agent");
 
     core::NodeHandler nh_;
     core::Publisher<motor_msg::MotorStateStamped> &motor_state_pub = nh_.advertise<motor_msg::MotorStateStamped>("motor/state");
@@ -102,7 +103,7 @@ int main(int argc, char **argv) {
 
     core::Rate rate(1000);
 
-    while (ros::ok()) {
+    while (rclcpp::ok()) {
         core::spinOnce();
 
         {

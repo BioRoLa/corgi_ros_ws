@@ -10,14 +10,14 @@
 #include "leg_model.hpp"
 #include "fitted_coefficient.hpp"
 
-#include "ros/ros.h"
-#include "corgi_msgs/MotorStateStamped.h"
-#include "corgi_msgs/ForceStateStamped.h"
-#include "corgi_msgs/ImpedanceCmdStamped.h"
-#include "corgi_msgs/MotorCmdStamped.h"
-#include "corgi_msgs/TriggerStamped.h"
-#include "corgi_msgs/ContactStateStamped.h"
-#include "sensor_msgs/Imu.h"
+#include "rclcpp/rclcpp.hpp"
+#include <corgi_msgs/msg/motor_state_stamped.hpp>
+#include <corgi_msgs/msg/force_state_stamped.hpp>
+#include <corgi_msgs/msg/impedance_cmd_stamped.hpp>
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
+#include <corgi_msgs/msg/trigger_stamped.hpp>
+#include <corgi_msgs/msg/contact_state_stamped.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 
 bool sim = true;
 LegModel legmodel(sim);

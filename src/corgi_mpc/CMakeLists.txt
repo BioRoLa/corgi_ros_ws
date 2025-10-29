@@ -1,9 +1,26 @@
 cmake_minimum_required(VERSION 3.8)
 
+project(corgi_mpc LANGUAGES C CXX)
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(rosgraph_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(corgi_msgs REQUIRED)
+find_package(corgi_utils REQUIRED)
+find_package(corgi_walk REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(corgi_force_estimation REQUIRED)
+find_package(corgi_gait_selector REQUIRED)
+find_package(corgi_hybrid REQUIRED)
+
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(osqp REQUIRED)
+find_package(OsqpEigen REQUIRED)
+find_package(yaml-cpp REQUIRED)
+
 set(CMAKE_C_COMPILER "/usr/bin/gcc")
 set(CMAKE_CXX_COMPILER "/usr/bin/g++")
-
-project(corgi_mpc LANGUAGES C CXX)
 
 set (CMAKE_EXE_LINKER_FLAGS)
 set (CMAKE_CXX_STANDARD 17)
@@ -18,49 +35,16 @@ set(EIGEN3_INCLUDE_DIR "${LOCAL_PACKAGE_PATH}/include/eigen3")
 set(OSQP_INCLUDE_DIRS "${LOCAL_PACKAGE_PATH}/include/osqp")
 set(OSQP_EIGEN_INCLUDE_DIRS "${LOCAL_PACKAGE_PATH}/include/OsqpEigen")
 
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-find_package(osqp REQUIRED)
-find_package(OsqpEigen REQUIRED)
-find_package(yaml-cpp REQUIRED)
-
-find_package(catkin REQUIRED COMPONENTS 
-  roscpp 
-  std_msgs 
-  rosgraph_msgs 
-  geometry_msgs 
-  corgi_msgs 
-  corgi_utils 
-  corgi_walk 
-  sensor_msgs
-  corgi_force_estimation
-  corgi_gait_selector
-  corgi_hybrid
-)
-
-catkin_package(
-  INCLUDE_DIRS include
-  CATKIN_DEPENDS 
-    roscpp 
-    std_msgs 
-    rosgraph_msgs 
-    geometry_msgs 
-    corgi_msgs 
-    corgi_utils 
-    corgi_walk 
-    sensor_msgs
-    corgi_force_estimation
-    corgi_gait_selector
-    corgi_hybrid
-)
-
 include_directories(
-  ${catkin_INCLUDE_DIRS}
   ${CMAKE_CURRENT_LIST_DIR}
   ${EIGEN3_INCLUDE_DIR}
   ${OSQP_INCLUDE_DIRS}
   ${OSQP_EIGEN_INCLUDE_DIRS}
   include
 )
+ament_export_include_directories(include)
+ament_export_dependencies(rclcpp std_msgs rosgraph_msgs geometry_msgs corgi_msgs corgi_utils corgi_walk sensor_msgs corgi_force_estimation corgi_gait_selector corgi_hybrid)
+ament_package()
 
 find_library(CORGI_UTILS corgi_utils)
 find_library(CORGI_WALK corgi_walk)

@@ -4,9 +4,9 @@
 #include "legged_gen.hpp"
 
 int main(int argc, char** argv) {
-    ROS_INFO("Transform mode test\n");
-    ros::init(argc, argv, "corgi_transform_test");
-    ros::NodeHandle nh;
+    RCLCPP_INFO(rclcpp::get_logger("CorgiTransformation"), "Transform mode test\n");
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("corgi_transform_test");
     
     //  Start an async spinner to run in parallel.
     ros::AsyncSpinner spinner(1);

@@ -1,6 +1,6 @@
 #include "Simple_fsm.hpp"
 
-GaitSelector::GaitSelector( ros::NodeHandle& nh, 
+GaitSelector::GaitSelector( rclcpp::Node& nh, 
                             bool sim, 
                             double CoM_bias, 
                             int pub_rate, 
@@ -18,10 +18,10 @@ GaitSelector::GaitSelector( ros::NodeHandle& nh,
     currentGait(Gait::WHEELED)
 {
     motor_state_sub_ = nh.subscribe("/motor/state", 1000, &GaitSelector::motor_state_cb, this);
-    motor_cmd_pub_ = nh.advertise<corgi_msgs::MotorCmdStamped>("/motor/command", pub_rate);
-    marker_pub_ = nh.advertise<visualization_msgs::Marker>("stable_triangle", pub_rate);
-    trigger_sub_ = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1000, &GaitSelector::trigger_cb, this);
-    rate_ptr = new ros::Rate(pub_rate);
+    motor_cmd_pub_ = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("/motor/command", pub_rate);
+    marker_pub_ = nh.advertise<visualization_msgs::msg::Marker>("stable_triangle", pub_rate);
+    trigger_sub_ = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1000, &GaitSelector::trigger_cb, this);
+    rate_ptr = new rclcpp::Rate(pub_rate);
 
     // Initialize dS & incre_duty
     dS = velocity / pub_rate;
@@ -83,11 +83,11 @@ void GaitSelector::Send(){
     rate_ptr->sleep();
 }
 
-void GaitSelector::motor_state_cb(const corgi_msgs::MotorStateStamped state){
+void GaitSelector::motor_state_cb(const corgi_msgs::msg::MotorStateStamped state){
     motor_state = state;
 }  
 
-void GaitSelector::trigger_cb(const corgi_msgs::TriggerStamped msg) {
+void GaitSelector::trigger_cb(const corgi_msgs::msg::TriggerStamped msg) {
     trigger_msg = msg;
 }//end trigger_cb
 
@@ -188,9 +188,9 @@ double GaitSelector::new_diff_step_length = 0.0;  // New differential step lengt
 double GaitSelector::diff_dS = 0.0;   // Differential dS
 int GaitSelector::sign_diff[4] = {0.0};   // Differential sign
 
-corgi_msgs::MotorStateStamped GaitSelector::motor_state = corgi_msgs::MotorStateStamped();
+corgi_msgs::msg::MotorStateStamped GaitSelector::motor_state = corgi_msgs::msg::MotorStateStamped();
 
-std::vector<corgi_msgs::MotorState*> GaitSelector::motor_state_modules = {
+std::vector<corgi_msgs::msg::MotorState*> GaitSelector::motor_state_modules = {
     &GaitSelector::motor_state.module_a,
     &GaitSelector::motor_state.module_b,
     &GaitSelector::motor_state.module_c,

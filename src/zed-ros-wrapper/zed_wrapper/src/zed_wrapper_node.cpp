@@ -19,11 +19,12 @@
 // /////////////////////////////////////////////////////////////////////////
 
 #include <nodelet/loader.h>
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "zed_camera_node");
+  rclcpp::init(argc, argv);
+  auto node = rclcpp::Node::make_shared("zed_camera_node");
 
   // Start the ZED Nodelet
   nodelet::Loader nodelet;
@@ -31,7 +32,7 @@ int main(int argc, char** argv)
   nodelet::V_string nargv;
   nodelet.load(ros::this_node::getName(), "zed_nodelets/ZEDWrapperNodelet", remap, nargv);
 
-  ros::spin();
+  rclcpp::spin(node);
 
   return 0;
 }

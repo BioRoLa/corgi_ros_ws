@@ -1,7 +1,7 @@
 #ifndef PLANESEG_HPP
 #define PLANESEG_HPP
 
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
 #include <pcl/features/normal_3d.h>
@@ -62,7 +62,7 @@ class PlaneSegmentation {
         ros::Publisher normal_pub;
         ros::Publisher normal_pub2;
         ros::Publisher plane_pub;
-        ros::NodeHandle nh;
+        rclcpp::Node nh;
 
         int last_marker_count_ = 0; // 用於記錄上次發佈的 marker 數量
 

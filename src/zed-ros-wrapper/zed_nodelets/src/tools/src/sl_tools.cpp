@@ -113,11 +113,11 @@ std::string getSDKVersion(int& major, int& minor, int& sub_minor)
   return ver;
 }
 
-ros::Time slTime2Ros(sl::Timestamp t)
+rclcpp::Time slTime2Ros(sl::Timestamp t)
 {
   uint32_t sec = static_cast<uint32_t>(t.getNanoseconds() / 1000000000);
   uint32_t nsec = static_cast<uint32_t>(t.getNanoseconds() % 1000000000);
-  return ros::Time(sec, nsec);
+  return rclcpp::Time(sec, nsec);
 }
 
 bool isZED(sl::MODEL camModel)
@@ -164,7 +164,7 @@ bool isZEDX(sl::MODEL camModel)
   return false;
 }
 
-void imageToROSmsg(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img, std::string frameId, ros::Time t)
+void imageToROSmsg(sensor_msgs::msg::ImagePtr imgMsgPtr, sl::Mat img, std::string frameId, rclcpp::Time t)
 {
   if (!imgMsgPtr)
   {
@@ -235,7 +235,7 @@ void imageToROSmsg(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img, std::string fra
   }
 }
 
-void imagesToROSmsg(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat left, sl::Mat right, std::string frameId, ros::Time t)
+void imagesToROSmsg(sensor_msgs::msg::ImagePtr imgMsgPtr, sl::Mat left, sl::Mat right, std::string frameId, rclcpp::Time t)
 {
   if (left.getWidth() != right.getWidth() || left.getHeight() != right.getHeight() ||
       left.getChannels() != right.getChannels() || left.getDataType() != right.getDataType())
@@ -245,7 +245,7 @@ void imagesToROSmsg(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat left, sl::Mat right
 
   if (!imgMsgPtr)
   {
-    imgMsgPtr = boost::make_shared<sensor_msgs::Image>();
+    imgMsgPtr = boost::make_shared<sensor_msgs::msg::Image>();
   }
 
   imgMsgPtr->header.stamp = t;

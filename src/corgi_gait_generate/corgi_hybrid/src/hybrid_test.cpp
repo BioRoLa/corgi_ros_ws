@@ -7,9 +7,9 @@ using namespace std;
 //         STATES last_state;
 
 int main(int argc, char** argv) {
-    ROS_INFO("Hybrid mode test\n");
-    ros::init(argc, argv, "corgi_hybrid_test");
-    ros::NodeHandle nh;
+    RCLCPP_INFO(rclcpp::get_logger("CorgiHybrid"), "Hybrid mode test\n");
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("corgi_hybrid_test");
 
     //  Start an async spinner to run in parallel.
     ros::AsyncSpinner spinner(1);

@@ -7,12 +7,12 @@
 #include <vector>
 #include <array>
 #include <cmath>
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 #include "leg_model.hpp"
-#include <corgi_msgs/MotorState.h>
-#include <corgi_msgs/MotorStateStamped.h>
-#include <corgi_msgs/MotorCmd.h>
-#include <corgi_msgs/MotorCmdStamped.h>
+#include <corgi_msgs/msg/motor_state.hpp>
+#include <corgi_msgs/msg/motor_state_stamped.hpp>
+#include <corgi_msgs/msg/motor_cmd.hpp>
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
 
 
 // Structures
@@ -278,26 +278,26 @@ struct Robot {
     }
 };
 // communitation
-corgi_msgs::MotorCmdStamped motor_cmd;
-std::vector<corgi_msgs::MotorCmd*> motor_cmd_modules = {
+corgi_msgs::msg::MotorCmdStamped motor_cmd;
+std::vector<corgi_msgs::msg::MotorCmd*> motor_cmd_modules = {
     &motor_cmd.module_a,
     &motor_cmd.module_b,
     &motor_cmd.module_c,
     &motor_cmd.module_d
 }; 
-corgi_msgs::MotorStateStamped motor_state;
-std::vector<corgi_msgs::MotorState*> motor_state_modules = {
+corgi_msgs::msg::MotorStateStamped motor_state;
+std::vector<corgi_msgs::msg::MotorState*> motor_state_modules = {
     &motor_state.module_a,
     &motor_state.module_b,
     &motor_state.module_c,
     &motor_state.module_d
 };
-void motor_state_cb(const corgi_msgs::MotorStateStamped::ConstPtr& state) {
+void motor_state_cb(const corgi_msgs::msg::MotorStateStamped::ConstSharedPtr& state) {
     motor_state = *state;
 }
 ros::Subscriber motor_state_sub_;
 ros::Publisher motor_cmd_pub_; 
-ros::Rate* rate_ptr;
+rclcpp::Rate* rate_ptr;
 // tools
 
 double deg2rad(double deg) {
@@ -1110,17 +1110,17 @@ int main(int argc, char** argv) {
     robot.terrain->printAll();
 
     // D. Ros
-    ROS_INFO("Test\n");
-    ros::init(argc, argv, "corgi_zigzag_test");
-    ros::NodeHandle nh;
+    RCLCPP_INFO(rclcpp::get_logger("CorgiHybrid"), "Test\n");
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("corgi_zigzag_test");
     ros::AsyncSpinner spinner(1);
     spinner.start();
     // motor state sub
-    motor_state_sub_ = nh.subscribe<corgi_msgs::MotorStateStamped>("/motor/state", robot.pub_rate, motor_state_cb);
+    motor_state_sub_ = nh.subscribe<corgi_msgs::msg::MotorStateStamped>("/motor/state", robot.pub_rate, motor_state_cb);
     // motor cmd pub
-    motor_cmd_pub_ = nh.advertise<corgi_msgs::MotorCmdStamped>("/motor/command", robot.pub_rate);
+    motor_cmd_pub_ = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("/motor/command", robot.pub_rate);
     
-    rate_ptr = new ros::Rate(robot.pub_rate);
+    rate_ptr = new rclcpp::Rate(robot.pub_rate);
 
     // 1. set the initial pose
     // A. Set with exiciting pose or specified pose(先讓前腳抬 -> 有機會可以調整到後腳不倒)

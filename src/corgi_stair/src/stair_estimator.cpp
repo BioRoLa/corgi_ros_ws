@@ -1,5 +1,5 @@
-#include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
+#include "rclcpp/rclcpp.hpp"
+#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
@@ -10,7 +10,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/filters/passthrough.h>
-#include <visualization_msgs/MarkerArray.h>
+#include <visualization_msgs/msg/marker_array.hpp>
 #include <pcl/search/kdtree.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/features/normal_3d.h>
@@ -24,8 +24,8 @@
 #include <unordered_map>
 #include <random>
 
-#include "corgi_msgs/TriggerStamped.h"
-#include "corgi_msgs/StairPlanes.h"
+#include <corgi_msgs/msg/trigger_stamped.hpp>
+#include <corgi_msgs/msg/stair_planes.hpp>
 #include "plane_segmentation.hpp"
 #include "plane_tracker.hpp"
 
@@ -35,19 +35,19 @@
 PlaneSegmentation* plane_segmentation;
 PlaneDistances plane_distances;
 PlaneTracker plane_tracker;
-corgi_msgs::TriggerStamped trigger_msg;
+corgi_msgs::msg::TriggerStamped trigger_msg;
 ros::Publisher plane_pub;
-corgi_msgs::StairPlanes plane_msg;
+corgi_msgs::msg::StairPlanes plane_msg;
 int cloud_seq = 0;
 Eigen::Vector3d h_normal;
 
-void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& msg) {
+void cloud_cb(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg) {
     cloud_seq = msg->header.seq;
     /* Convert the ROS PointCloud2 message to PCL point cloud */
     pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
     pcl::fromROSMsg(*msg, *cloud);
     if (!cloud->isOrganized()) {
-        ROS_WARN("Point cloud is not organized. Skipping frame.");
+        RCLCPP_WARN(rclcpp::get_logger("CorgiStair"), "Point cloud is not organized. Skipping frame.");
         return;
     }
 
@@ -69,8 +69,8 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& msg) {
     // Eigen::Vector3d z_axis = Eigen::Vector3d::UnitZ();
     // Eigen::Quaterniond q_corr = Eigen::Quaterniond::FromTwoVectors(h_normal, z_axis);
 
-    // geometry_msgs::TransformStamped tf_corr;
-    // tf_corr.header.stamp = ros::Time::now();
+    // geometry_msgs::msg::TransformStamped tf_corr;
+    // tf_corr.header.stamp = rclcpp::Time::now();
     // tf_corr.header.frame_id = "zedxm_left_camera_frame";
     // tf_corr.child_frame_id = "zedxm_camera_correct";
 
@@ -86,27 +86,27 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr& msg) {
     // tf_broadcaster.sendTransform(tf_corr);
 }//end cloud_cb
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg) {
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg) {
     trigger_msg = msg;
 }//end trigger_cb
 
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "plane_segmentation_node");
-    ros::NodeHandle nh;
-    ros::Subscriber cloud_sub   = nh.subscribe("/zedxm/zed_node/point_cloud/cloud_registered", 1, cloud_cb);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1, trigger_cb);
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("plane_segmentation_node");
+    auto cloud_sub   = nh.subscribe("/zedxm/zed_node/point_cloud/cloud_registered", 1, cloud_cb);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1, trigger_cb);
     tf2_ros::Buffer tfBuffer;
     tf2_ros::TransformListener tfListener(tfBuffer);
-    geometry_msgs::TransformStamped camera_transform, last_camera_transform, camera_transform_tmp;
+    geometry_msgs::msg::TransformStamped camera_transform, last_camera_transform, camera_transform_tmp;
     camera_transform.transform.translation.x = 0.0;
     camera_transform.transform.translation.y = 0.0;
     camera_transform.transform.translation.z = 0.0;
 
     plane_segmentation = new PlaneSegmentation;
     plane_segmentation->init_tf();
-    plane_pub = nh.advertise<corgi_msgs::StairPlanes>("/stair_planes", 1);;
-    ros::Rate rate(10);
+    plane_pub = nh.advertise<corgi_msgs::msg::StairPlanes>("/stair_planes", 1);;
+    rclcpp::Rate rate(10);
 
     std::ofstream plane_csv("plane_distances.csv");
     plane_csv << "Time,";
@@ -123,11 +123,11 @@ int main(int argc, char** argv) {
     stair_csv << "Vertical0,";  for (int i = 1; i < 10; ++i) stair_csv << "Vertical"   << i << ",";
     stair_csv << "\n";
 
-    while (ros::ok()) {
-        ros::spinOnce();
-        if (tfBuffer.canTransform("map", "zedxm_camera_center", ros::Time(0), ros::Duration(0.0))) {
+    while (rclcpp::ok()) {
+        rclcpp::spin_some(node);
+        if (tfBuffer.canTransform("map", "zedxm_camera_center", rclcpp::Time(0), rclcpp::Duration(0.0))) {
             try {
-                camera_transform_tmp = tfBuffer.lookupTransform("map", "zedxm_camera_center", ros::Time(0));
+                camera_transform_tmp = tfBuffer.lookupTransform("map", "zedxm_camera_center", rclcpp::Time(0));
                 // if (std::abs(camera_transform.transform.translation.x - camera_transform_tmp.transform.translation.x) < 0.1 
                 //     && std::abs(camera_transform.transform.translation.y - camera_transform_tmp.transform.translation.y) < 0.1 
                 //     && std::abs(camera_transform.transform.translation.z - camera_transform_tmp.transform.translation.z) < 0.1) {
@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
         }
 
         /* plane_csv */
-        plane_csv << ros::Time::now() << ",";
+        plane_csv << rclcpp::Time::now() << ",";
         plane_csv << (int)trigger_msg.enable << ",";
         for (int i=0; i<10; i++) {
             if (i < plane_distances.horizontal.size())
@@ -162,7 +162,7 @@ int main(int argc, char** argv) {
         plane_csv << "\n";
 
         /* stair_csv */
-        stair_csv << ros::Time::now() << ",";
+        stair_csv << rclcpp::Time::now() << ",";
         stair_csv << (int)trigger_msg.enable << ",";
         stair_csv << camera_transform.transform.translation.x << ",";
         stair_csv << camera_transform.transform.translation.z << ",";

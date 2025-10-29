@@ -22,18 +22,18 @@
 #define RGBD_SENSOR_DEMUX_HPP
 
 #include <nodelet/nodelet.h>
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 #include <ros/subscriber.h>
 
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/MagneticField.h>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/magnetic_field.hpp>
 
 #include <image_transport/image_transport.h>
 #include <image_transport/subscriber_filter.h>
 
-#include "zed_interfaces/RGBDSensors.h"
+#include <zed_interfaces/msg/rgbd_sensors.hpp>
 
 namespace zed_nodelets
 {
@@ -50,12 +50,12 @@ protected:
 
   /*! \brief Callback for full topics synchronization
    */
-  void msgCallback(const zed_interfaces::RGBDSensorsPtr& msg);
+  void msgCallback(const zed_interfaces::msg::RGBDSensorsPtr& msg);
 
 private:
   // Node handlers
-  ros::NodeHandle mNh;   // Node handler
-  ros::NodeHandle mNhP;  // Private Node handler
+  rclcpp::Node mNh;   // Node handler
+  rclcpp::Node mNhP;  // Private Node handler
 
   // Publishers
   image_transport::CameraPublisher mPubRgb;

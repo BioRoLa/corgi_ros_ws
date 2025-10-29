@@ -28,21 +28,21 @@ WheeledCmd::WheeledCmd(std::string control_mode)
   // 十字鍵盤 上下 加減速度
 
   // Publishers on existing topics
-  steering_cmd_pub_ = nh_.advertise<corgi_msgs::SteeringCmdStamped>("/steer/command", 1);
-  wheel_cmd_pub_    = nh_.advertise<corgi_msgs::WheelCmd>("wheel_cmd", 1);
-  debug_pub_        = nh_.advertise<std_msgs::String>("debug_info", 10);
+  steering_cmd_pub_ = nh_.advertise<corgi_msgs::msg::SteeringCmdStamped>("/steer/command", 1);
+  wheel_cmd_pub_    = nh_.advertise<corgi_msgs::msg::WheelCmd>("wheel_cmd", 1);
+  debug_pub_        = nh_.advertise<std_msgs::msg::String>("debug_info", 10);
 
   // Subscribe to control inputs based on mode
   if (control_mode_ == "teleop")
   {
-    // Teleop mode: subscribe to keyboard key events (std_msgs::String) on "teleop_keys"
+    // Teleop mode: subscribe to keyboard key events (std_msgs::msg::String) on "teleop_keys"
     teleop_sub_ = nh_.subscribe("teleop_keys", 1, &WheeledCmd::teleopCallback, this);
   }
   else if (control_mode_ == "pure")
   {
     // Pure code mode: no joystick or teleop input
     // This mode is not implemented in this example
-    ROS_WARN("Pure code mode selected");
+    RCLCPP_WARN(rclcpp::get_logger("CorgiWheeled"), "Pure code mode selected");
   }
   else  // default to joystick control
   {
@@ -53,11 +53,11 @@ WheeledCmd::WheeledCmd(std::string control_mode)
   steering_state_sub_ = nh_.subscribe("/steer/state", 1, &WheeledCmd::steeringStateCallback, this);
 
   // Timers to republish commands continuously if needed (at 1 kHz)
-  wheel_cmd_timer_ = nh_.createTimer(ros::Duration(0.001), &WheeledCmd::wheelCmdTimerCallback, this);
-  steer_cmd_timer_ = nh_.createTimer(ros::Duration(0.001), &WheeledCmd::steerCmdTimerCallback, this);
+  wheel_cmd_timer_ = nh_.createTimer(rclcpp::Duration(0.001), &WheeledCmd::wheelCmdTimerCallback, this);
+  steer_cmd_timer_ = nh_.createTimer(rclcpp::Duration(0.001), &WheeledCmd::steerCmdTimerCallback, this);
 
   // Initialize last wheel command: ensure stop is true initially
-  last_wheel_cmd_.header.stamp = ros::Time::now();
+  last_wheel_cmd_.header.stamp = rclcpp::Time::now();
   last_wheel_cmd_.stop         = true;
   last_wheel_cmd_.direction    = false;
   last_wheel_cmd_.velocity     = 0.0f;
@@ -73,36 +73,36 @@ double WheeledCmd::clamp(double value, double min_val, double max_val)
   return std::min(std::max(value, min_val), max_val);
 }
 
-void WheeledCmd::wheelCmdTimerCallback(const ros::TimerEvent&)
+void WheeledCmd::wheelCmdTimerCallback(const rclcpp::TimerEvent&)
 {
   if (!last_wheel_cmd_.stop)
   {
-    last_wheel_cmd_.header.stamp = ros::Time::now();
+    last_wheel_cmd_.header.stamp = rclcpp::Time::now();
     wheel_cmd_pub_.publish(last_wheel_cmd_);
   }
 }
 
-void WheeledCmd::steerCmdTimerCallback(const ros::TimerEvent&)
+void WheeledCmd::steerCmdTimerCallback(const rclcpp::TimerEvent&)
 {
   if (steering_cmd_.voltage != 0)
   {
-    steering_cmd_.header.stamp = ros::Time::now();
+    steering_cmd_.header.stamp = rclcpp::Time::now();
     steering_cmd_pub_.publish(steering_cmd_);
   }
 }
 
-void WheeledCmd::steeringStateCallback(const corgi_msgs::SteeringStateStamped::ConstPtr& msg)
+void WheeledCmd::steeringStateCallback(const corgi_msgs::msg::SteeringStateStamped::ConstSharedPtr& msg)
 {
   current_steering_state_ = *msg;
 }
 
-void WheeledCmd::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
+void WheeledCmd::joyCallback(const sensor_msgs::msg::Joy::ConstSharedPtr& joy)
 {
   // 1) Reset: when reset button is pressed (edge-triggered)
   bool reset_now = (button_reset_ >= 0 && button_reset_ < (int)joy->buttons.size() && joy->buttons[button_reset_] == 1);
   if (reset_now && !was_reset_pressed_)
   {
-    std_msgs::String dbg;
+    std_msgs::msg::String dbg;
     dbg.data = "[JoyCB] Reset: stopping, zero velocity and angle, hold OFF";
     debug_pub_.publish(dbg);
 
@@ -112,11 +112,11 @@ void WheeledCmd::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
     // Reset steering command
     steering_cmd_.angle   = 0.0;
     steering_cmd_.voltage = 0;
-    steering_cmd_.header.stamp = ros::Time::now();
+    steering_cmd_.header.stamp = rclcpp::Time::now();
     steering_cmd_pub_.publish(steering_cmd_);
 
     // Reset wheel command
-    last_wheel_cmd_.header.stamp = ros::Time::now();
+    last_wheel_cmd_.header.stamp = rclcpp::Time::now();
     last_wheel_cmd_.stop       = true;
     last_wheel_cmd_.direction  = false;
     last_wheel_cmd_.velocity   = 0.0f;
@@ -130,14 +130,14 @@ void WheeledCmd::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
   if (hold_now && !was_hold_pressed_)
   {
     hold_active_ = !hold_active_;
-    std_msgs::String dbg;
+    std_msgs::msg::String dbg;
     dbg.data = "[JoyCB] Toggled hold: " + std::string(hold_active_ ? "ON" : "OFF");
     debug_pub_.publish(dbg);
 
     if (hold_active_)
     {
       last_wheel_cmd_.stop = false;
-      last_wheel_cmd_.header.stamp = ros::Time::now();
+      last_wheel_cmd_.header.stamp = rclcpp::Time::now();
       wheel_cmd_pub_.publish(last_wheel_cmd_);
     }
   }
@@ -156,7 +156,7 @@ void WheeledCmd::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
       steering_cmd_.angle = 0.0;
     }
     steering_cmd_.voltage = 4095; // maximum voltage value
-    steering_cmd_.header.stamp = ros::Time::now();
+    steering_cmd_.header.stamp = rclcpp::Time::now();
     steering_cmd_pub_.publish(steering_cmd_);
   }
 
@@ -201,12 +201,12 @@ void WheeledCmd::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
   last_wheel_cmd_.stop      = stop;
   last_wheel_cmd_.direction = direction;
   last_wheel_cmd_.velocity  = current_velocity_;
-  last_wheel_cmd_.header.stamp = ros::Time::now();
+  last_wheel_cmd_.header.stamp = rclcpp::Time::now();
   //  last_wheel_cmd_.ground_rotate = read from button_ground_ (if pressed); 
   wheel_cmd_pub_.publish(last_wheel_cmd_);
 }
 
-void WheeledCmd::teleopCallback(const std_msgs::String::ConstPtr& msg)
+void WheeledCmd::teleopCallback(const std_msgs::msg::String::ConstSharedPtr& msg)
 {
   // First, check if the entire message matches arrow key codes "72" or "80"
   if(msg->data == "72")
@@ -221,7 +221,7 @@ void WheeledCmd::teleopCallback(const std_msgs::String::ConstPtr& msg)
   {
       // Get the first character from the message for single-key commands
       char key = msg->data.empty() ? '\0' : msg->data[0];
-      std_msgs::String dbg;
+      std_msgs::msg::String dbg;
       dbg.data = "[TeleopCB] Received key: " + std::string(1, key);
       debug_pub_.publish(dbg);
       switch(key)
@@ -298,7 +298,7 @@ void WheeledCmd::teleopCallback(const std_msgs::String::ConstPtr& msg)
           last_wheel_cmd_.velocity = 0.0;
           steering_cmd_.angle = 0.0;
           steering_cmd_.voltage = 0;
-          steering_cmd_.header.stamp = ros::Time::now();
+          steering_cmd_.header.stamp = rclcpp::Time::now();
           steering_cmd_pub_.publish(steering_cmd_);
           break;
         default:
@@ -308,10 +308,10 @@ void WheeledCmd::teleopCallback(const std_msgs::String::ConstPtr& msg)
   }
   
   // Publish updated wheel command
-  last_wheel_cmd_.header.stamp = ros::Time::now();
+  last_wheel_cmd_.header.stamp = rclcpp::Time::now();
   wheel_cmd_pub_.publish(last_wheel_cmd_);
 
   // Publish updated steering command
-  steering_cmd_.header.stamp = ros::Time::now();
+  steering_cmd_.header.stamp = rclcpp::Time::now();
   steering_cmd_pub_.publish(steering_cmd_);
 }

@@ -3,43 +3,43 @@
 
 
 bool trigger = false;
-corgi_msgs::SimDataStamped sim_data;
-corgi_msgs::ForceStateStamped force_state;
-corgi_msgs::MotorStateStamped motor_state;
-geometry_msgs::Vector3 odom_pos;
-geometry_msgs::Vector3 odom_vel;
+corgi_msgs::msg::SimDataStamped sim_data;
+corgi_msgs::msg::ForceStateStamped force_state;
+corgi_msgs::msg::MotorStateStamped motor_state;
+geometry_msgs::msg::Vector3 odom_pos;
+geometry_msgs::msg::Vector3 odom_vel;
 double odom_z;
-sensor_msgs::Imu imu;
+sensor_msgs::msg::Imu imu;
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg){
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
     trigger = msg.enable;
 }
 
-void sim_data_cb(const corgi_msgs::SimDataStamped data){
+void sim_data_cb(const corgi_msgs::msg::SimDataStamped data){
     sim_data = data;
 }
 
-void force_state_cb(const corgi_msgs::ForceStateStamped msg){
+void force_state_cb(const corgi_msgs::msg::ForceStateStamped msg){
     force_state = msg;
 }
 
-void motor_state_cb(const corgi_msgs::MotorStateStamped msg){
+void motor_state_cb(const corgi_msgs::msg::MotorStateStamped msg){
     motor_state = msg;
 }
 
-void odom_pos_cb(const geometry_msgs::Vector3::ConstPtr &msg){
+void odom_pos_cb(const geometry_msgs::msg::Vector3::ConstSharedPtr &msg){
     odom_pos = *msg;
 }
 
-void odom_vel_cb(const geometry_msgs::Vector3::ConstPtr &msg){
+void odom_vel_cb(const geometry_msgs::msg::Vector3::ConstSharedPtr &msg){
     odom_vel = *msg;
 }
 
-void odom_z_cb(const std_msgs::Float64::ConstPtr &msg){
+void odom_z_cb(const std_msgs::msg::Float64::ConstSharedPtr &msg){
     odom_z = msg->data;
 }
 
-void imu_cb(const sensor_msgs::Imu::ConstPtr &msg){
+void imu_cb(const sensor_msgs::msg::Imu::ConstSharedPtr &msg){
     imu = *msg;
 }
 
@@ -53,53 +53,53 @@ void convert_force_to_local(double *f_global, const Eigen::Matrix3d& R_T) {
 
 
 int main(int argc, char **argv) {
-    ROS_INFO("Corgi MPC Starts");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "Corgi MPC Starts");
 
     ModelPredictiveController mpc;
     mpc.load_config();
     mpc.target_loop = 450;
 
-    ros::init(argc, argv, "corgi_mpc");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Publisher imp_cmd_pub = nh.advertise<corgi_msgs::ImpedanceCmdStamped>("impedance/command", 1000);
-    ros::Publisher contact_pub = nh.advertise<corgi_msgs::ContactStateStamped>("odometry/contact", 1000);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1000, trigger_cb);
-    ros::Subscriber sim_data_sub = nh.subscribe<corgi_msgs::SimDataStamped>("sim/data", 1000, sim_data_cb);
-    ros::Subscriber force_state_sub = nh.subscribe<corgi_msgs::ForceStateStamped>("force/state", 1000, force_state_cb);
-    ros::Subscriber motor_state_sub = nh.subscribe<corgi_msgs::MotorStateStamped>("motor/state", 1000, motor_state_cb);
-    ros::Subscriber odom_pos_sub = nh.subscribe<geometry_msgs::Vector3>("odometry/position", 1000, odom_pos_cb);
-    ros::Subscriber odom_vel_sub = nh.subscribe<geometry_msgs::Vector3>("odometry/velocity", 1000, odom_vel_cb);
-    ros::Subscriber odom_z_sub = nh.subscribe<std_msgs::Float64>("odometry/z_position_hip", 1000, odom_z_cb);
-    ros::Subscriber imu_sub = nh.subscribe<sensor_msgs::Imu>("imu", 1000, imu_cb);
+    auto nh = rclcpp::Node::make_shared("corgi_mpc");
+    auto imp_cmd_pub = nh.advertise<corgi_msgs::msg::ImpedanceCmdStamped>("impedance/command", 1000);
+    auto contact_pub = nh.advertise<corgi_msgs::msg::ContactStateStamped>("odometry/contact", 1000);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1000, trigger_cb);
+    auto sim_data_sub = nh.subscribe<corgi_msgs::msg::SimDataStamped>("sim/data", 1000, sim_data_cb);
+    auto force_state_sub = nh.subscribe<corgi_msgs::msg::ForceStateStamped>("force/state", 1000, force_state_cb);
+    auto motor_state_sub = nh.subscribe<corgi_msgs::msg::MotorStateStamped>("motor/state", 1000, motor_state_cb);
+    auto odom_pos_sub = nh.subscribe<geometry_msgs::msg::Vector3>("odometry/position", 1000, odom_pos_cb);
+    auto odom_vel_sub = nh.subscribe<geometry_msgs::msg::Vector3>("odometry/velocity", 1000, odom_vel_cb);
+    auto odom_z_sub = nh.subscribe<std_msgs::msg::Float64>("odometry/z_position_hip", 1000, odom_z_cb);
+    auto imu_sub = nh.subscribe<sensor_msgs::msg::Imu>("imu", 1000, imu_cb);
 
-    ros::Rate rate(mpc.freq);
+    rclcpp::Rate rate(mpc.freq);
 
-    corgi_msgs::ImpedanceCmdStamped imp_cmd;
-    corgi_msgs::ContactStateStamped contact_state;
+    corgi_msgs::msg::ImpedanceCmdStamped imp_cmd;
+    corgi_msgs::msg::ContactStateStamped contact_state;
 
-    std::vector<corgi_msgs::ImpedanceCmd*> imp_cmd_modules = {
+    std::vector<corgi_msgs::msg::ImpedanceCmd*> imp_cmd_modules = {
         &imp_cmd.module_a,
         &imp_cmd.module_b,
         &imp_cmd.module_c,
         &imp_cmd.module_d
     };
 
-    std::vector<corgi_msgs::ContactState*> contact_state_modules = {
+    std::vector<corgi_msgs::msg::ContactState*> contact_state_modules = {
         &contact_state.module_a,
         &contact_state.module_b,
         &contact_state.module_c,
         &contact_state.module_d
     };
 
-    std::vector<corgi_msgs::ForceState*> force_state_modules = {
+    std::vector<corgi_msgs::msg::ForceState*> force_state_modules = {
         &force_state.module_a,
         &force_state.module_b,
         &force_state.module_c,
         &force_state.module_d
     };
 
-    std::vector<corgi_msgs::MotorState*> motor_state_modules = {
+    std::vector<corgi_msgs::msg::MotorState*> motor_state_modules = {
         &motor_state.module_a,
         &motor_state.module_b,
         &motor_state.module_c,
@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
         cmd->Ky = mpc.Ky_swing;
     }
 
-    ROS_INFO("Wait For Force Control Node ...\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "Wait For Force Control Node ...\n");
     
     if (!sim) {
         for (int i=0; i<int(3*mpc.freq); i++) {
@@ -154,7 +154,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    ROS_INFO("Transform Starts\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "Transform Starts\n");
 
     for (int i=0; i<int(3*mpc.freq); i++) {
         for (int j=0; j<4; j++) {
@@ -166,21 +166,21 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
 
-    ROS_INFO("Transform Finished\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "Transform Finished\n");
 
     // stay
     for (int i=0; i<int(2*mpc.freq); i++) {
-        ros::spinOnce();
+        rclcpp::spin_some(node);
         imp_cmd.header.seq = -1;
         imp_cmd_pub.publish(imp_cmd);
         rate.sleep();
     }
     
 
-    while (ros::ok()) {
-        ros::spinOnce();
+    while (rclcpp::ok()) {
+        rclcpp::spin_some(node);
         if (trigger){
-            ROS_INFO("Wait For Odometry Node Initializing ...\n");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "Wait For Odometry Node Initializing ...\n");
 
             if (!sim) {
                 for (int i=0; i<int(3*mpc.freq); i++) {
@@ -208,11 +208,11 @@ int main(int argc, char **argv) {
                 cmd->Ky = mpc.Ky_stance;
             }
 
-            ROS_INFO("MPC Controller Starts ...\n");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "MPC Controller Starts ...\n");
 
             int loop_count = 0;
-            while (ros::ok()) {
-                ros::spinOnce();
+            while (rclcpp::ok()) {
+                rclcpp::spin_some(node);
 
                 // update target vel and pos
                 // if (loop_count < int(1*mpc.freq)) {

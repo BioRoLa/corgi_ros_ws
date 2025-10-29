@@ -12,7 +12,7 @@
 
 #include "leg_model.hpp"
 #include "bezier.hpp"
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 class Legged{
     public:

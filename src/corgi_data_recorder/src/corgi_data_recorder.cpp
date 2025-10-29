@@ -5,40 +5,40 @@
 #include <sys/stat.h>
 #include <signal.h>
 
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
-#include "corgi_msgs/MotorCmdStamped.h"
-#include "corgi_msgs/MotorStateStamped.h"
-#include "corgi_msgs/PowerCmdStamped.h"
-#include "corgi_msgs/PowerStateStamped.h"
-#include "corgi_msgs/TriggerStamped.h"
-#include "sensor_msgs/Imu.h"
-#include "corgi_msgs/ImpedanceCmdStamped.h"
-#include "corgi_msgs/ForceStateStamped.h"
-#include "corgi_msgs/SimDataStamped.h"
-#include "geometry_msgs/Vector3.h"
-#include "std_msgs/Float64.h"
-#include <std_msgs/Float32MultiArray.h>
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
+#include <corgi_msgs/msg/motor_state_stamped.hpp>
+#include <corgi_msgs/msg/power_cmd_stamped.hpp>
+#include <corgi_msgs/msg/power_state_stamped.hpp>
+#include <corgi_msgs/msg/trigger_stamped.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#include <corgi_msgs/msg/impedance_cmd_stamped.hpp>
+#include <corgi_msgs/msg/force_state_stamped.hpp>
+#include <corgi_msgs/msg/sim_data_stamped.hpp>
+#include <geometry_msgs/msg/vector3.hpp>
+#include <std_msgs/msg/float64.hpp>
+#include <std_msgs/msg/float32_multi_array.hpp>
 
 
 bool trigger = false;
-corgi_msgs::MotorCmdStamped motor_cmd;
-corgi_msgs::MotorStateStamped motor_state;
-corgi_msgs::PowerCmdStamped power_cmd;
-corgi_msgs::PowerStateStamped power_state;
-sensor_msgs::Imu imu;
-corgi_msgs::ImpedanceCmdStamped imp_cmd;
-corgi_msgs::ForceStateStamped force_state;
-corgi_msgs::SimDataStamped sim_data;
-geometry_msgs::Vector3 odom_pos;
-geometry_msgs::Vector3 odom_vel;
+corgi_msgs::msg::MotorCmdStamped motor_cmd;
+corgi_msgs::msg::MotorStateStamped motor_state;
+corgi_msgs::msg::PowerCmdStamped power_cmd;
+corgi_msgs::msg::PowerStateStamped power_state;
+sensor_msgs::msg::Imu imu;
+corgi_msgs::msg::ImpedanceCmdStamped imp_cmd;
+corgi_msgs::msg::ForceStateStamped force_state;
+corgi_msgs::msg::SimDataStamped sim_data;
+geometry_msgs::msg::Vector3 odom_pos;
+geometry_msgs::msg::Vector3 odom_vel;
 double odom_z;
 
 std::ofstream output_file;
 std::string output_file_name = "";
 std::string output_file_path = "";
 
-std_msgs::Float32MultiArray camera;
+std_msgs::msg::Float32MultiArray camera;
 
 
 bool file_exists(const std::string &filename) {
@@ -48,11 +48,11 @@ bool file_exists(const std::string &filename) {
 
 
 void signal_handler(int signum) {
-    ROS_INFO("Interrupt received.");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiDataRecorder"), "Interrupt received.");
 
     if (output_file.is_open()) {
         output_file.close();
-        ROS_INFO("Data successfully saved.");
+        RCLCPP_INFO(rclcpp::get_logger("CorgiDataRecorder"), "Data successfully saved.");
     }
 
     ros::shutdown();
@@ -60,7 +60,7 @@ void signal_handler(int signum) {
 }
 
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg){
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
     trigger = msg.enable;
     
     output_file_name = msg.output_filename;
@@ -152,66 +152,66 @@ void trigger_cb(const corgi_msgs::TriggerStamped msg){
                         << "camera_dist" << "," << "camera_yaw" 
                         << "\n";
 
-            ROS_INFO("Recording data to %s\n", output_file_name.c_str());
+            RCLCPP_INFO(rclcpp::get_logger("CorgiDataRecorder"), "Recording data to %s\n", output_file_name.c_str());
         }
     }
     else {
         if (output_file.is_open()) {
             output_file.close();
-            ROS_INFO("Stopped recording data\n");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiDataRecorder"), "Stopped recording data\n");
         }
     }
 }
 
 
-void motor_cmd_cb(const corgi_msgs::MotorCmdStamped cmd){
+void motor_cmd_cb(const corgi_msgs::msg::MotorCmdStamped cmd){
     motor_cmd = cmd;
 }
 
 
-void motor_state_cb(const corgi_msgs::MotorStateStamped state){
+void motor_state_cb(const corgi_msgs::msg::MotorStateStamped state){
     motor_state = state;
 }
 
 
-void power_cmd_cb(const corgi_msgs::PowerCmdStamped cmd){
+void power_cmd_cb(const corgi_msgs::msg::PowerCmdStamped cmd){
     power_cmd = cmd;
 }
 
 
-void power_state_cb(const corgi_msgs::PowerStateStamped state){
+void power_state_cb(const corgi_msgs::msg::PowerStateStamped state){
     power_state = state;
 }
 
-void imu_cb(const sensor_msgs::Imu values){
+void imu_cb(const sensor_msgs::msg::Imu values){
     imu = values;
 }
 
-void imp_cmd_cb(const corgi_msgs::ImpedanceCmdStamped cmd){
+void imp_cmd_cb(const corgi_msgs::msg::ImpedanceCmdStamped cmd){
     imp_cmd = cmd;
 }
 
-void force_state_cb(const corgi_msgs::ForceStateStamped state){
+void force_state_cb(const corgi_msgs::msg::ForceStateStamped state){
     force_state = state;
 }
 
-void sim_data_cb(const corgi_msgs::SimDataStamped data){
+void sim_data_cb(const corgi_msgs::msg::SimDataStamped data){
     sim_data = data;
 }
 
-void odom_pos_cb(const geometry_msgs::Vector3::ConstPtr &msg){
+void odom_pos_cb(const geometry_msgs::msg::Vector3::ConstSharedPtr &msg){
     odom_pos = *msg;
 }
 
-void odom_vel_cb(const geometry_msgs::Vector3::ConstPtr &msg){
+void odom_vel_cb(const geometry_msgs::msg::Vector3::ConstSharedPtr &msg){
     odom_vel = *msg;
 }
 
-void odom_z_cb(const std_msgs::Float64::ConstPtr &msg){
+void odom_z_cb(const std_msgs::msg::Float64::ConstSharedPtr &msg){
     odom_z = msg->data;
 }
 
-void stair_info_cb(const std_msgs::Float32MultiArray::ConstPtr &msg){
+void stair_info_cb(const std_msgs::msg::Float32MultiArray::ConstSharedPtr &msg){
     // Process stair information if needed
     // camera
     // camera.data.resize(msg->data.size());
@@ -223,11 +223,11 @@ void stair_info_cb(const std_msgs::Float32MultiArray::ConstPtr &msg){
 
 void write_data() {
     if (!output_file.is_open()){
-        if (output_file_name != "") ROS_INFO("Output file is not opened\n");
+        if (output_file_name != "") RCLCPP_INFO(rclcpp::get_logger("CorgiDataRecorder"), "Output file is not opened\n");
         return;
     }
 
-    output_file << ros::Time::now() << ","
+    output_file << rclcpp::Time::now() << ","
                 << motor_cmd.header.seq << "," << motor_cmd.header.stamp.sec << "," << motor_cmd.header.stamp.nsec << ","
                 << motor_cmd.module_a.theta << "," << motor_cmd.module_a.beta << ","
                 << motor_cmd.module_a.torque_r << "," << motor_cmd.module_a.torque_l << ","
@@ -310,30 +310,30 @@ void write_data() {
 
 
 int main(int argc, char **argv) {
-    ROS_INFO("Data Recorder Starts\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiDataRecorder"), "Data Recorder Starts\n");
     
-    ros::init(argc, argv, "corgi_data_recorder");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1000, trigger_cb);
-    ros::Subscriber motor_cmd_sub = nh.subscribe<corgi_msgs::MotorCmdStamped>("motor/command", 1000, motor_cmd_cb);
-    ros::Subscriber motor_state_sub = nh.subscribe<corgi_msgs::MotorStateStamped>("motor/state", 1000, motor_state_cb);
-    ros::Subscriber power_cmd_sub = nh.subscribe<corgi_msgs::PowerCmdStamped>("power/command", 1000, power_cmd_cb);
-    ros::Subscriber power_state_sub = nh.subscribe<corgi_msgs::PowerStateStamped>("power/state", 1000, power_state_cb);
-    ros::Subscriber imu_sub = nh.subscribe<sensor_msgs::Imu>("imu", 1000, imu_cb);
-    ros::Subscriber imp_cmd_sub = nh.subscribe<corgi_msgs::ImpedanceCmdStamped>("impedance/command", 1000, imp_cmd_cb);
-    ros::Subscriber force_state_sub = nh.subscribe<corgi_msgs::ForceStateStamped>("force/state", 1000, force_state_cb);
-    ros::Subscriber sim_data_sub = nh.subscribe<corgi_msgs::SimDataStamped>("sim/data", 1000, sim_data_cb);
-    ros::Subscriber odom_pos_sub = nh.subscribe<geometry_msgs::Vector3>("odometry/position", 1000, odom_pos_cb);
-    ros::Subscriber odom_vel_sub = nh.subscribe<geometry_msgs::Vector3>("odometry/velocity", 1000, odom_vel_cb);
-    ros::Subscriber odom_z_sub = nh.subscribe<std_msgs::Float64>("odometry/z_position_hip", 1000, odom_z_cb);
-    ros::Subscriber stair_info_sub   = nh.subscribe<std_msgs::Float32MultiArray>("stair_plane_info", 1000, stair_info_cb);
-    ros::Rate rate(1000);
+    auto nh = rclcpp::Node::make_shared("corgi_data_recorder");
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1000, trigger_cb);
+    auto motor_cmd_sub = nh.subscribe<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1000, motor_cmd_cb);
+    auto motor_state_sub = nh.subscribe<corgi_msgs::msg::MotorStateStamped>("motor/state", 1000, motor_state_cb);
+    auto power_cmd_sub = nh.subscribe<corgi_msgs::msg::PowerCmdStamped>("power/command", 1000, power_cmd_cb);
+    auto power_state_sub = nh.subscribe<corgi_msgs::msg::PowerStateStamped>("power/state", 1000, power_state_cb);
+    auto imu_sub = nh.subscribe<sensor_msgs::msg::Imu>("imu", 1000, imu_cb);
+    auto imp_cmd_sub = nh.subscribe<corgi_msgs::msg::ImpedanceCmdStamped>("impedance/command", 1000, imp_cmd_cb);
+    auto force_state_sub = nh.subscribe<corgi_msgs::msg::ForceStateStamped>("force/state", 1000, force_state_cb);
+    auto sim_data_sub = nh.subscribe<corgi_msgs::msg::SimDataStamped>("sim/data", 1000, sim_data_cb);
+    auto odom_pos_sub = nh.subscribe<geometry_msgs::msg::Vector3>("odometry/position", 1000, odom_pos_cb);
+    auto odom_vel_sub = nh.subscribe<geometry_msgs::msg::Vector3>("odometry/velocity", 1000, odom_vel_cb);
+    auto odom_z_sub = nh.subscribe<std_msgs::msg::Float64>("odometry/z_position_hip", 1000, odom_z_cb);
+    auto stair_info_sub   = nh.subscribe<std_msgs::msg::Float32MultiArray>("stair_plane_info", 1000, stair_info_cb);
+    rclcpp::Rate rate(1000);
 
     signal(SIGINT, signal_handler);
 
-    while (ros::ok()) {
-        ros::spinOnce();
+    while (rclcpp::ok()) {
+        rclcpp::spin_some(node);
 
         if (trigger) {
             write_data();

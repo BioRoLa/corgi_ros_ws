@@ -1,22 +1,22 @@
 #include <iostream>
 
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 #include <chrono>
-#include "corgi_msgs/MotorCmdStamped.h"
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
 
 #include "wheel_to_leg.hpp"
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "transform_main");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Publisher motor_pub = nh.advertise<corgi_msgs::MotorCmdStamped>("motor/command", 1);
+    auto nh = rclcpp::Node::make_shared("transform_main");
+    auto motor_pub = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1);
 
-    ros::Rate rate(1000);
+    rclcpp::Rate rate(1000);
 
-    corgi_msgs::MotorCmdStamped motor_cmd;
+    corgi_msgs::msg::MotorCmdStamped motor_cmd;
 
-    std::array<corgi_msgs::MotorCmd*, 4> motor_cmd_modules = {
+    std::array<corgi_msgs::msg::MotorCmd*, 4> motor_cmd_modules = {
         &motor_cmd.module_a,
         &motor_cmd.module_b,
         &motor_cmd.module_c,
@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    while (ros::ok()) {
+    while (rclcpp::ok()) {
         if (WheelToLegTransformer.transform_finished) { break; }
         
         eta_list = WheelToLegTransformer.step();

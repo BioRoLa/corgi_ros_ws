@@ -14,7 +14,7 @@ TDL
     1. add ratio of turning    
 */
 
-Wheeled::Wheeled(ros::NodeHandle& nh) : GaitSelector(nh)
+Wheeled::Wheeled(rclcpp::Node& nh) : GaitSelector(nh)
 {
     // Initialize parameters
     beta_adjustment = 0.0;
@@ -26,11 +26,11 @@ Wheeled::Wheeled(ros::NodeHandle& nh) : GaitSelector(nh)
     steer_cmd_sub_ = nh.subscribe("/steer/command", 1000, &Wheeled::steerCmdCallback, this);
 }
 
-void Wheeled::wheelCmdCallback(const corgi_msgs::WheelCmd::ConstPtr& msg)
+void Wheeled::wheelCmdCallback(const corgi_msgs::msg::WheelCmd::ConstSharedPtr& msg)
 {
     current_wheel_cmd_ = *msg;
     velocity = current_wheel_cmd_.velocity;
-    motor_cmd.header.stamp = ros::Time::now();
+    motor_cmd.header.stamp = rclcpp::Time::now();
     // Compute beta adjustments based on whether we're in linear or angular mode.
     if (current_steer_cmd_.angle == 0.0) {
         // Linear motion
@@ -75,7 +75,7 @@ void Wheeled::wheelCmdCallback(const corgi_msgs::WheelCmd::ConstPtr& msg)
     motor_cmd.header.seq = motor_state.header.seq + 1;
 }
 
-void Wheeled::steerCmdCallback(const corgi_msgs::SteeringCmdStamped::ConstPtr& msg)
+void Wheeled::steerCmdCallback(const corgi_msgs::msg::SteeringCmdStamped::ConstSharedPtr& msg)
 {
     current_steer_cmd_ = *msg;
 }

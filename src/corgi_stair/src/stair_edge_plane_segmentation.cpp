@@ -1,5 +1,5 @@
-#include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
+#include "rclcpp/rclcpp.hpp"
+#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
@@ -38,18 +38,18 @@ tf2_ros::Buffer tf_buffer_;
 tf2_ros::TransformListener* tf_listener_;
 std::vector<Eigen::Vector3f> cluster_centroids;
 std::array<std::vector<Range>, 2> global_range;
-corgi_msgs::TriggerStamped trigger_msg;
+corgi_msgs::msg::TriggerStamped trigger_msg;
 int could_seq = 0;
 
 
 
-void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input) {
+void cloudCallback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& input) {
     could_seq = input->header.seq;
     /* Step 1: Convert the ROS PointCloud2 message to PCL point cloud */
     pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
     pcl::fromROSMsg(*input, *cloud);
     if (!cloud->isOrganized()) {
-        ROS_WARN("Point cloud is not organized. Skipping frame.");
+        RCLCPP_WARN(rclcpp::get_logger("CorgiStair"), "Point cloud is not organized. Skipping frame.");
         return;
     }
 
@@ -122,7 +122,7 @@ void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input) {
 
 
     // Optional: publish or visualize edge_cloud
-    ROS_INFO("Extracted %zu edge points (stairs profile).", edge_cloud->points.size());
+    RCLCPP_INFO(rclcpp::get_logger("CorgiStair"), "Extracted %zu edge points (stairs profile).", edge_cloud->points.size());
     // Example: publish or save
     // pcl::io::savePCDFileBinary("/tmp/edge_profile.pcd", *edge_cloud);
 }
@@ -130,15 +130,15 @@ void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input) {
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "plane_segmentation_node");
-    ros::NodeHandle nh;
-    ros::Subscriber cloud_sub = nh.subscribe("/zedxm/zed_node/point_cloud/cloud_registered", 1, cloudCallback);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1, trigger_cb);
-    pub = nh.advertise<sensor_msgs::PointCloud2>("plane_segmentation", 1);
-    normal_pub = nh.advertise<visualization_msgs::MarkerArray>("visualization_normals", 1);
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("plane_segmentation_node");
+    auto cloud_sub = nh.subscribe("/zedxm/zed_node/point_cloud/cloud_registered", 1, cloudCallback);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1, trigger_cb);
+    pub = nh.advertise<sensor_msgs::msg::PointCloud2>("plane_segmentation", 1);
+    normal_pub = nh.advertise<visualization_msgs::msg::MarkerArray>("visualization_normals", 1);
     tf_listener_ = new tf2_ros::TransformListener(tf_buffer_);
 
-    ros::Rate rate(10);
+    rclcpp::Rate rate(10);
 
     std::ofstream csv("plane_distances.csv");
     csv << "could_seq,";
@@ -147,8 +147,8 @@ int main(int argc, char** argv)
     csv << "Vertical0,";  for (int i = 1; i < 10; ++i) csv << "Vertical"   << i << ",";
     csv << "\n";
 
-    while (ros::ok()) {
-        ros::spinOnce();
+    while (rclcpp::ok()) {
+        rclcpp::spin_some(node);
 
         csv << could_seq << ",";
         csv << (int)trigger_msg.enable << ",";

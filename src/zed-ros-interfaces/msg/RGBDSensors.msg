@@ -1,16 +1,7 @@
-# Header
-Header header
-
-# CameraInfo
-sensor_msgs/CameraInfo rgbCameraInfo
+# Headerstd_msgs/Header header
+# CameraInfosensor_msgs/CameraInfo rgbCameraInfo
 sensor_msgs/CameraInfo depthCameraInfo
-
-# Raw
-sensor_msgs/Image rgb
+# Rawsensor_msgs/Image rgb
 sensor_msgs/Image depth
-
-# IMU
-sensor_msgs/Imu imu
-
-# Magnetometer
-sensor_msgs/MagneticField mag
+# IMUsensor_msgs/Imu imu
+# Magnetometersensor_msgs/MagneticField mag

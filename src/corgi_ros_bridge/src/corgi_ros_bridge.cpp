@@ -1,22 +1,22 @@
 #include <iostream>
 #include <mutex>
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 #include "NodeHandler.h"
 #include "Motor.pb.h"
 #include "Power.pb.h"
 #include "Steering.pb.h"
 
-#include "rosgraph_msgs/Clock.h"
-#include "geometry_msgs/Pose.h"
-#include "geometry_msgs/Twist.h"
-#include "corgi_msgs/MotorCmdStamped.h"
-#include "corgi_msgs/MotorStateStamped.h"
-#include "corgi_msgs/PowerCmdStamped.h"
-#include "corgi_msgs/PowerStateStamped.h"
-#include "corgi_msgs/SteeringCmdStamped.h"
-#include "corgi_msgs/SteeringStateStamped.h"
-#include "corgi_msgs/TriggerStamped.h"
+#include <rosgraph_msgs/msg/clock.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/twist.hpp>
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
+#include <corgi_msgs/msg/motor_state_stamped.hpp>
+#include <corgi_msgs/msg/power_cmd_stamped.hpp>
+#include <corgi_msgs/msg/power_state_stamped.hpp>
+#include <corgi_msgs/msg/steering_cmd_stamped.hpp>
+#include <corgi_msgs/msg/steering_state_stamped.hpp>
+#include <corgi_msgs/msg/trigger_stamped.hpp>
 
 
 std::mutex mutex_ros_motor_state;
@@ -26,12 +26,12 @@ std::mutex mutex_grpc_motor_cmd;
 std::mutex mutex_grpc_power_cmd;
 std::mutex mutex_grpc_steer_cmd;
 
-corgi_msgs::MotorCmdStamped         ros_motor_cmd;
-corgi_msgs::PowerCmdStamped         ros_power_cmd;
-corgi_msgs::SteeringCmdStamped      ros_steer_cmd;
-corgi_msgs::MotorStateStamped       ros_motor_state;
-corgi_msgs::PowerStateStamped       ros_power_state;
-corgi_msgs::SteeringStateStamped    ros_steer_state;
+corgi_msgs::msg::MotorCmdStamped         ros_motor_cmd;
+corgi_msgs::msg::PowerCmdStamped         ros_power_cmd;
+corgi_msgs::msg::SteeringCmdStamped      ros_steer_cmd;
+corgi_msgs::msg::MotorStateStamped       ros_motor_state;
+corgi_msgs::msg::PowerStateStamped       ros_power_state;
+corgi_msgs::msg::SteeringStateStamped    ros_steer_state;
 
 motor_msg::MotorCmdStamped          grpc_motor_cmd;
 power_msg::PowerCmdStamped          grpc_power_cmd;
@@ -50,11 +50,11 @@ core::Publisher<steering_msg::SteeringCmdStamped>   *grpc_steer_cmd_pub;
 bool ros_trigger = false;
 
 
-void ros_trigger_cb(const corgi_msgs::TriggerStamped trigger){
+void ros_trigger_cb(const corgi_msgs::msg::TriggerStamped trigger){
     ros_trigger = trigger.enable;
 }
 
-void ros_motor_cmd_cb(const corgi_msgs::MotorCmdStamped cmd) {
+void ros_motor_cmd_cb(const corgi_msgs::msg::MotorCmdStamped cmd) {
     std::lock_guard<std::mutex> lock(mutex_grpc_motor_cmd);
 
     ros_motor_cmd = cmd;
@@ -66,7 +66,7 @@ void ros_motor_cmd_cb(const corgi_msgs::MotorCmdStamped cmd) {
         grpc_motor_cmd.mutable_module_d()
     };
 
-    std::vector<corgi_msgs::MotorCmd> ros_motor_modules = {
+    std::vector<corgi_msgs::msg::MotorCmd> ros_motor_modules = {
         ros_motor_cmd.module_a,
         ros_motor_cmd.module_b,
         ros_motor_cmd.module_c,
@@ -93,7 +93,7 @@ void ros_motor_cmd_cb(const corgi_msgs::MotorCmdStamped cmd) {
     grpc_motor_cmd_pub->publish(grpc_motor_cmd);
 }
 
-void ros_power_cmd_cb(const corgi_msgs::PowerCmdStamped cmd) {
+void ros_power_cmd_cb(const corgi_msgs::msg::PowerCmdStamped cmd) {
     std::lock_guard<std::mutex> lock(mutex_grpc_power_cmd);
 
     ros_power_cmd = cmd;
@@ -113,7 +113,7 @@ void ros_power_cmd_cb(const corgi_msgs::PowerCmdStamped cmd) {
     grpc_power_cmd_pub->publish(grpc_power_cmd);
 }
 
-void ros_steer_cmd_cb(const corgi_msgs::SteeringCmdStamped cmd) {
+void ros_steer_cmd_cb(const corgi_msgs::msg::SteeringCmdStamped cmd) {
     std::lock_guard<std::mutex> lock(mutex_grpc_steer_cmd);
 
     ros_steer_cmd = cmd;
@@ -140,7 +140,7 @@ void grpc_motor_state_cb(const motor_msg::MotorStateStamped state) {
         &grpc_motor_state.module_d()
     };
 
-    std::vector<corgi_msgs::MotorState*> ros_motor_modules = {
+    std::vector<corgi_msgs::msg::MotorState*> ros_motor_modules = {
         &ros_motor_state.module_a,
         &ros_motor_state.module_b,
         &ros_motor_state.module_c,
@@ -232,16 +232,16 @@ int main(int argc, char **argv) {
         }
     }
 
-    ros::init(argc, argv, "corgi_ros_bridge");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Subscriber ros_motor_cmd_sub = nh.subscribe<corgi_msgs::MotorCmdStamped>("motor/command", 1, ros_motor_cmd_cb);
-    ros::Subscriber ros_power_cmd_sub = nh.subscribe<corgi_msgs::PowerCmdStamped>("power/command", 1, ros_power_cmd_cb);
-    ros::Subscriber ros_steer_cmd_sub = nh.subscribe<corgi_msgs::SteeringCmdStamped>("steer/command", 1, ros_steer_cmd_cb);
-    ros::Subscriber ros_trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1, ros_trigger_cb);
-    ros_motor_state_pub = nh.advertise<corgi_msgs::MotorStateStamped>("motor/state", 1);
-    ros_power_state_pub = nh.advertise<corgi_msgs::PowerStateStamped>("power/state", 1);
-    ros_steer_state_pub = nh.advertise<corgi_msgs::SteeringStateStamped>("steer/state", 1);
+    auto nh = rclcpp::Node::make_shared("corgi_ros_bridge");
+    auto ros_motor_cmd_sub = nh.subscribe<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1, ros_motor_cmd_cb);
+    auto ros_power_cmd_sub = nh.subscribe<corgi_msgs::msg::PowerCmdStamped>("power/command", 1, ros_power_cmd_cb);
+    auto ros_steer_cmd_sub = nh.subscribe<corgi_msgs::msg::SteeringCmdStamped>("steer/command", 1, ros_steer_cmd_cb);
+    auto ros_trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1, ros_trigger_cb);
+    ros_motor_state_pub = nh.advertise<corgi_msgs::msg::MotorStateStamped>("motor/state", 1);
+    ros_power_state_pub = nh.advertise<corgi_msgs::msg::PowerStateStamped>("power/state", 1);
+    ros_steer_state_pub = nh.advertise<corgi_msgs::msg::SteeringStateStamped>("steer/state", 1);
 
     core::NodeHandler nh_;
     core::Subscriber<motor_msg::MotorStateStamped> &grpc_motor_state_sub = nh_.subscribe<motor_msg::MotorStateStamped>("motor/state", 1000, grpc_motor_state_cb);
@@ -254,10 +254,10 @@ int main(int argc, char **argv) {
     core::Rate rate(1000);
 
     int loop_counter = 0;
-    while (ros::ok()) {
+    while (rclcpp::ok()) {
         if (debug_mode) ROS_INFO_STREAM("Loop Count: " << loop_counter);
 
-        ros::spinOnce();
+        rclcpp::spin_some(node);
         core::spinOnce();
 
         if (debug_mode) ROS_INFO_STREAM(" ");
@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
 
-    ROS_INFO("Corgi ROS Bridge is killed");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiRosBridge"), "Corgi ROS Bridge is killed");
 
     ros::shutdown();
     

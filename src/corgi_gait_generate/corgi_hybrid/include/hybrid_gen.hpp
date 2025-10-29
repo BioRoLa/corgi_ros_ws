@@ -16,7 +16,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 #include "leg_model.hpp"
 #include "hybrid_swing.hpp"
 

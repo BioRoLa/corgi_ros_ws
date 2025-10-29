@@ -1,13 +1,13 @@
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 #include <iostream>
 #include <vector>
 #include <cmath>
 #include <thread>
 #include <mutex>
-#include <corgi_msgs/MotorState.h>
-#include <corgi_msgs/MotorStateStamped.h>
-#include <corgi_msgs/MotorCmd.h>
-#include <corgi_msgs/MotorCmdStamped.h>
+#include <corgi_msgs/msg/motor_state.hpp>
+#include <corgi_msgs/msg/motor_state_stamped.hpp>
+#include <corgi_msgs/msg/motor_cmd.hpp>
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
 
 // Global shared variables and a mutex for thread safety
 std::mutex input_mutex;
@@ -16,18 +16,18 @@ int last_direction = 0; // Stores the last non-zero direction
 double velocity = 0.5;  // Velocity value
 
 // Global messages for motor state and command
-corgi_msgs::MotorStateStamped current_motor_state_;
-corgi_msgs::MotorCmdStamped current_motor_cmd_;
+corgi_msgs::msg::MotorStateStamped current_motor_state_;
+corgi_msgs::msg::MotorCmdStamped current_motor_cmd_;
 
 // Create vectors of pointers to each module
-std::vector<corgi_msgs::MotorState*> motor_state_modules = {
+std::vector<corgi_msgs::msg::MotorState*> motor_state_modules = {
     &current_motor_state_.module_a,
     &current_motor_state_.module_b,
     &current_motor_state_.module_c,
     &current_motor_state_.module_d
 };
 
-std::vector<corgi_msgs::MotorCmd*> motor_cmds = {
+std::vector<corgi_msgs::msg::MotorCmd*> motor_cmds = {
     &current_motor_cmd_.module_a,
     &current_motor_cmd_.module_b,
     &current_motor_cmd_.module_c,
@@ -35,13 +35,13 @@ std::vector<corgi_msgs::MotorCmd*> motor_cmds = {
 };
 
 // Callback to update the current motor state
-void motorsStateCallback(const corgi_msgs::MotorStateStamped::ConstPtr& msg){
+void motorsStateCallback(const corgi_msgs::msg::MotorStateStamped::ConstSharedPtr& msg){
     current_motor_state_ = *msg;
 }
 
 // This thread continuously reads keyboard input and updates shared variables.
 void keyboardInputThread() {
-    while (ros::ok()) {
+    while (rclcpp::ok()) {
         char input_char;
         std::cout << "[d] Direction; [v] Velocity; [p] Pause; [r] Resume; [q] Quit: ";
         std::cin >> input_char;
@@ -100,20 +100,20 @@ void keyboardInputThread() {
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "test");
-    ros::NodeHandle nh;
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("test");
     ros::AsyncSpinner spinner(1);
     spinner.start();
 
-    ros::Publisher motor_cmd_pub_ = nh.advertise<corgi_msgs::MotorCmdStamped>("/motor/command", 1000);
-    ros::Subscriber motor_state_sub_ = nh.subscribe("/motor/state", 1000, motorsStateCallback);
-    ros::Rate rate(1000);
+    auto motor_cmd_pub_ = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("/motor/command", 1000);
+    auto motor_state_sub_ = nh.subscribe("/motor/state", 1000, motorsStateCallback);
+    rclcpp::Rate rate(1000);
 
     // Start the keyboard input thread
     std::thread input_thread(keyboardInputThread);
 
-    while (ros::ok()) {
-        ros::spinOnce();
+    while (rclcpp::ok()) {
+        rclcpp::spin_some(node);
 
         // Get the latest direction and velocity (protected by a mutex)
         int current_direction;
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
         }
 
         // Update motor commands for each module
-        current_motor_cmd_.header.stamp = ros::Time::now();
+        current_motor_cmd_.header.stamp = rclcpp::Time::now();
         for (int i = 0; i < 4; ++i) {
             motor_cmds[i]->theta = 17 * (M_PI / 180.0);
             motor_cmds[i]->beta = motor_state_modules[i]->beta + beta_adjustment;

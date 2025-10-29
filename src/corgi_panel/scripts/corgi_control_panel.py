@@ -328,16 +328,17 @@ class CorgiControlPanel(QWidget):
         
 
     def init_ros(self):
-        rospy.init_node('corgi_control_panel')
+        rclpy.init()
+        node = rclpy.create_node('corgi_control_panel')
         
-        self.power_cmd_pub = rospy.Publisher('power/command', PowerCmdStamped, queue_size=10)
-        self.motor_cmd_pub = rospy.Publisher('motor/command', MotorCmdStamped, queue_size=10)
-        self.trigger_pub = rospy.Publisher('trigger', TriggerStamped, queue_size=10)
-        self.sensor_enable_pub = rospy.Publisher('sensor_enable', SensorEnableStamped, queue_size=10)
+        self.power_cmd_pub = node.create_publisher(PowerCmdStamped, queue_size=10, 'power/command')
+        self.motor_cmd_pub = node.create_publisher(MotorCmdStamped, queue_size=10, 'motor/command')
+        self.trigger_pub = node.create_publisher(TriggerStamped, queue_size=10, 'trigger')
+        self.sensor_enable_pub = node.create_publisher(SensorEnableStamped, queue_size=10, 'sensor_enable')
         
-        self.power_state_sub = rospy.Subscriber('power/state', PowerStateStamped, self.power_state_cb)
-        self.motor_state_sub = rospy.Subscriber('motor/state', MotorStateStamped, self.motor_state_cb)
-        self.steer_state_sub = rospy.Subscriber('steer/state', SteeringStateStamped, self.steer_state_cb)
+        self.power_state_sub = node.create_subscription(PowerStateStamped, 'power/state', self.power_state_cb)
+        self.motor_state_sub = node.create_subscription(MotorStateStamped, 'motor/state', self.motor_state_cb)
+        self.steer_state_sub = node.create_subscription(SteeringStateStamped, 'steer/state', self.steer_state_cb)
         
         self.power_state = PowerStateStamped()
         self.motor_state = MotorCmdStamped()

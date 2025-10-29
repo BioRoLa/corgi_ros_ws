@@ -4,7 +4,7 @@ using namespace std;
 using namespace Eigen;
 const double PI = M_PI;
 
-WLWGait::WLWGait(ros::NodeHandle& nh, bool sim, double CoM_bias, int pub_rate, double BL, double BW, double BH): 
+WLWGait::WLWGait(rclcpp::Node& nh, bool sim, double CoM_bias, int pub_rate, double BL, double BW, double BH): 
     leg_model(sim), 
     CoM_bias(CoM_bias), 
     BL(BL), 
@@ -14,9 +14,9 @@ WLWGait::WLWGait(ros::NodeHandle& nh, bool sim, double CoM_bias, int pub_rate, d
     rng(rd()), 
     dist(0, 359)
 {
-    motor_pub = nh.advertise<corgi_msgs::MotorCmdStamped>("/motor/command", 1000);
+    motor_pub = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("/motor/command", 1000);
     motor_state_sub_ = nh.subscribe("/motor/state", 1000, &WLWGait::motorsStateCallback, this);
-    rate_ptr = new ros::Rate(pub_rate);
+    rate_ptr = new rclcpp::Rate(pub_rate);
     
     // Initialize dS & incre_duty
     dS = velocity / pub_rate;
@@ -28,7 +28,7 @@ WLWGait::~WLWGait() {
     rate_ptr = nullptr;
 }
 
-void WLWGait::motorsStateCallback(const corgi_msgs::MotorStateStamped::ConstPtr& msg)
+void WLWGait::motorsStateCallback(const corgi_msgs::msg::MotorStateStamped::ConstSharedPtr& msg)
 {
     current_motor_state_ = *msg;
 }
@@ -925,8 +925,8 @@ void WLWGait::change_Velocity(double new_value){
 }
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "wlw_test");
-    ros::NodeHandle nh;
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("wlw_test");
 
     //  Start an async spinner to run in parallel.
     ros::AsyncSpinner spinner(1);
@@ -953,7 +953,7 @@ int main(int argc, char** argv) {
     cout<< "walking"<<endl;
     for (int step = 0;step<1000;step++) {
         wlw_gait.motor_cmd.header.seq = step;
-        wlw_gait.motor_cmd.header.stamp = ros::Time::now();
+        wlw_gait.motor_cmd.header.stamp = rclcpp::Time::now();
         wlw_gait.Step(1, 1, -0.05);
     }
 
@@ -975,12 +975,12 @@ int main(int argc, char** argv) {
             wlw_gait.change_Step_length(0.3);
             wlw_gait.change_Velocity(0.05);
             wlw_gait.motor_cmd.header.seq = step;
-            wlw_gait.motor_cmd.header.stamp = ros::Time::now();
+            wlw_gait.motor_cmd.header.stamp = rclcpp::Time::now();
             wlw_gait.Step(1, 1, -0.06);
         }
         else{
             wlw_gait.motor_cmd.header.seq = step;
-            wlw_gait.motor_cmd.header.stamp = ros::Time::now();
+            wlw_gait.motor_cmd.header.stamp = rclcpp::Time::now();
             wlw_gait.Step(1, 1, -0.05);
         }
         
@@ -1039,11 +1039,11 @@ int main(int argc, char** argv) {
             eta_list = walk_gait.step();
             for (int i=0; i<4; i++) {
                 if (eta_list[0][i] > M_PI*159.9/180.0) {
-                    ROS_INFO("Exceed Upper Bound.\n");
+                    RCLCPP_INFO(rclcpp::get_logger("WlwGen"), "Exceed Upper Bound.\n");
                     eta_list[0][i] = M_PI*159.9/180.0;
                 }
                 if (eta_list[0][i] < M_PI*16.9/180.0) {
-                    ROS_INFO("Exceed Lower Bound.\n");
+                    RCLCPP_INFO(rclcpp::get_logger("WlwGen"), "Exceed Lower Bound.\n");
                     eta_list[0][i] = M_PI*16.9/180.0;
                 }
                 wlw_gait.motor_cmd_modules[i]->theta = eta_list[0][i];
@@ -1055,7 +1055,7 @@ int main(int argc, char** argv) {
                 wlw_gait.motor_cmd_modules[i]->ki_l = 0;
                 wlw_gait.motor_cmd_modules[i]->kd_l = 1.75;
                 wlw_gait.motor_cmd.header.seq = step;
-                wlw_gait.motor_cmd.header.stamp = ros::Time::now();
+                wlw_gait.motor_cmd.header.stamp = rclcpp::Time::now();
             }
             wlw_gait.publish(1);
         }
@@ -1101,7 +1101,7 @@ int main(int argc, char** argv) {
     cout<< "-----wlw walking-----"<<endl;
     for (int step = 0;step<5000;step++) {
         wlw_gait.motor_cmd.header.seq = step;
-        wlw_gait.motor_cmd.header.stamp = ros::Time::now();
+        wlw_gait.motor_cmd.header.stamp = rclcpp::Time::now();
         wlw_gait.Step(1, 1, -0.03);
     }
 
@@ -1111,14 +1111,14 @@ int main(int argc, char** argv) {
     //     wlw_gait.change_Height(0.165 - (0.165-0.1125)*(step)/7500);
     //     wlw_gait.change_Step_length(0.3+0.1*(step)/7500);
     //     wlw_gait.motor_cmd.header.seq = step;
-    //     wlw_gait.motor_cmd.header.stamp = ros::Time::now();
+    //     wlw_gait.motor_cmd.header.stamp = rclcpp::Time::now();
     //     wlw_gait.Step(1, 1, -0.05);
     // }
     // // until theta = 17+PI/180
     // for (int step = 0;step<1000;step++) {
     //     wlw_gait.change_Height(0.1125);
     //     wlw_gait.motor_cmd.header.seq = step;
-    //     wlw_gait.motor_cmd.header.stamp = ros::Time::now();
+    //     wlw_gait.motor_cmd.header.stamp = rclcpp::Time::now();
     //     wlw_gait.Step(1, 1, -0.05);
     // }
     

@@ -7,8 +7,8 @@
 #include <array>
 #include <string>
 
-#include "ros/ros.h"
-#include "corgi_msgs/MotorCmdStamped.h"
+#include "rclcpp/rclcpp.hpp"
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
 #include "trot_gait.hpp"
 #include "leg_model.hpp"
 #include "bezier.hpp"

@@ -30,10 +30,10 @@
 #include <ros/console.h>
 #endif
 
-#include <zed_interfaces/Object.h>
-#include <zed_interfaces/ObjectsStamped.h>
-#include <zed_interfaces/PlaneStamped.h>
-#include <zed_interfaces/PosTrackStatus.h>
+#include <zed_interfaces/msg/object.hpp>
+#include <zed_interfaces/msg/objects_stamped.hpp>
+#include <zed_interfaces/msg/plane_stamped.hpp>
+#include <zed_interfaces/msg/pos_track_status.hpp>
 
 //#define DEBUG_SENS_TS 1
 
@@ -181,13 +181,13 @@ void ZEDWrapperNodelet::onInit()
   std::string plane_topic = "plane";
 
   // Create camera info
-  mRgbCamInfoMsg.reset(new sensor_msgs::CameraInfo());
-  mLeftCamInfoMsg.reset(new sensor_msgs::CameraInfo());
-  mRightCamInfoMsg.reset(new sensor_msgs::CameraInfo());
-  mRgbCamInfoRawMsg.reset(new sensor_msgs::CameraInfo());
-  mLeftCamInfoRawMsg.reset(new sensor_msgs::CameraInfo());
-  mRightCamInfoRawMsg.reset(new sensor_msgs::CameraInfo());
-  mDepthCamInfoMsg.reset(new sensor_msgs::CameraInfo());
+  mRgbCamInfoMsg.reset(new sensor_msgs::msg::CameraInfo());
+  mLeftCamInfoMsg.reset(new sensor_msgs::msg::CameraInfo());
+  mRightCamInfoMsg.reset(new sensor_msgs::msg::CameraInfo());
+  mRgbCamInfoRawMsg.reset(new sensor_msgs::msg::CameraInfo());
+  mLeftCamInfoRawMsg.reset(new sensor_msgs::msg::CameraInfo());
+  mRightCamInfoRawMsg.reset(new sensor_msgs::msg::CameraInfo());
+  mDepthCamInfoMsg.reset(new sensor_msgs::msg::CameraInfo());
 
   // Initialization transformation listener
   mTfBuffer.reset(new tf2_ros::Buffer);
@@ -492,7 +492,7 @@ void ZEDWrapperNodelet::onInit()
   NODELET_INFO_STREAM(" * Advertised on topic " << mPubRawStereo.getTopic());
 
   // Detected planes publisher
-  mPubPlane = mNhNs.advertise<zed_interfaces::PlaneStamped>(plane_topic, 1);
+  mPubPlane = mNhNs.advertise<zed_interfaces::msg::PlaneStamped>(plane_topic, 1);
 
   if (!mDepthDisabled)
   {
@@ -501,56 +501,56 @@ void ZEDWrapperNodelet::onInit()
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubDepth.getInfoTopic());
 
     // Confidence Map publisher
-    mPubConfMap = mNhNs.advertise<sensor_msgs::Image>(conf_map_topic, 1);  // confidence map
+    mPubConfMap = mNhNs.advertise<sensor_msgs::msg::Image>(conf_map_topic, 1);  // confidence map
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubConfMap.getTopic());
 
     // Disparity publisher
-    mPubDisparity = mNhNs.advertise<stereo_msgs::DisparityImage>(disparityTopic, 1);
+    mPubDisparity = mNhNs.advertise<stereo_msgs::msg::DisparityImage>(disparityTopic, 1);
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubDisparity.getTopic());
 
     // PointCloud publishers
-    mPubCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_topic, 1);
+    mPubCloud = mNhNs.advertise<sensor_msgs::msg::PointCloud2>(pointcloud_topic, 1);
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubCloud.getTopic());
 
     if (mMappingEnabled)
     {
-      mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
+      mPubFusedCloud = mNhNs.advertise<sensor_msgs::msg::PointCloud2>(pointcloud_fused_topic, 1);
       NODELET_INFO_STREAM(" * Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
     }
 
     // Object detection publishers
     if (mObjDetEnabled)
     {
-      mPubObjDet = mNhNs.advertise<zed_interfaces::ObjectsStamped>(object_det_topic, 1);
+      mPubObjDet = mNhNs.advertise<zed_interfaces::msg::ObjectsStamped>(object_det_topic, 1);
       NODELET_INFO_STREAM(" * Advertised on topic " << mPubObjDet.getTopic());
     }
 
     // Odometry and Pose publisher
-    mPubPose = mNhNs.advertise<geometry_msgs::PoseStamped>(poseTopic, 1);
+    mPubPose = mNhNs.advertise<geometry_msgs::msg::PoseStamped>(poseTopic, 1);
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubPose.getTopic());
-    mPubPoseCov = mNhNs.advertise<geometry_msgs::PoseWithCovarianceStamped>(pose_cov_topic, 1);
+    mPubPoseCov = mNhNs.advertise<geometry_msgs::msg::PoseWithCovarianceStamped>(pose_cov_topic, 1);
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubPoseCov.getTopic());
 
-    mPubOdom = mNhNs.advertise<nav_msgs::Odometry>(odometryTopic, 1);
+    mPubOdom = mNhNs.advertise<nav_msgs::msg::Odometry>(odometryTopic, 1);
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubOdom.getTopic());
 
-    mPubOdomStatus = mNhNs.advertise<zed_interfaces::PosTrackStatus>(odomStatusTopic, 1);
+    mPubOdomStatus = mNhNs.advertise<zed_interfaces::msg::PosTrackStatus>(odomStatusTopic, 1);
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubOdomStatus.getTopic());
-    mPubPoseStatus = mNhNs.advertise<zed_interfaces::PosTrackStatus>(poseStatusTopic, 1);
+    mPubPoseStatus = mNhNs.advertise<zed_interfaces::msg::PosTrackStatus>(poseStatusTopic, 1);
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubPoseStatus.getTopic());
 
     // Rviz markers publisher
-    mPubMarker = mNhNs.advertise<visualization_msgs::Marker>(marker_topic, 10, true);
+    mPubMarker = mNhNs.advertise<visualization_msgs::msg::Marker>(marker_topic, 10, true);
 
     // Camera Path
     if (mPathPubRate > 0)
     {
-      mPubOdomPath = mNhNs.advertise<nav_msgs::Path>(odom_path_topic, 1, true);
+      mPubOdomPath = mNhNs.advertise<nav_msgs::msg::Path>(odom_path_topic, 1, true);
       NODELET_INFO_STREAM(" * Advertised on topic " << mPubOdomPath.getTopic());
-      mPubMapPath = mNhNs.advertise<nav_msgs::Path>(map_path_topic, 1, true);
+      mPubMapPath = mNhNs.advertise<nav_msgs::msg::Path>(map_path_topic, 1, true);
       NODELET_INFO_STREAM(" * Advertised on topic " << mPubMapPath.getTopic());
 
-      mPathTimer = mNhNs.createTimer(ros::Duration(1.0 / mPathPubRate), &ZEDWrapperNodelet::callback_pubPath, this);
+      mPathTimer = mNhNs.createTimer(rclcpp::Duration(1.0 / mPathPubRate), &ZEDWrapperNodelet::callback_pubPath, this);
 
       if (mPathMaxCount != -1)
       {
@@ -571,31 +571,31 @@ void ZEDWrapperNodelet::onInit()
   if (!sl_tools::isZED(mZedRealCamModel))
   {
     // IMU Publishers
-    mPubImu = mNhNs.advertise<sensor_msgs::Imu>(imu_topic, 1);
+    mPubImu = mNhNs.advertise<sensor_msgs::msg::Imu>(imu_topic, 1);
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubImu.getTopic());
-    mPubImuRaw = mNhNs.advertise<sensor_msgs::Imu>(imu_topic_raw, 1);
+    mPubImuRaw = mNhNs.advertise<sensor_msgs::msg::Imu>(imu_topic_raw, 1);
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubImuRaw.getTopic());
 
     if (mZedRealCamModel != sl::MODEL::ZED_M)
     {
       // IMU temperature sensor
-      mPubImuTemp = mNhNs.advertise<sensor_msgs::Temperature>(imu_temp_topic, 1);
+      mPubImuTemp = mNhNs.advertise<sensor_msgs::msg::Temperature>(imu_temp_topic, 1);
       NODELET_INFO_STREAM(" * Advertised on topic " << mPubImuTemp.getTopic());
     }
 
     if (mZedRealCamModel == sl::MODEL::ZED2 || mZedRealCamModel == sl::MODEL::ZED2i)
     {
-      mPubImuMag = mNhNs.advertise<sensor_msgs::MagneticField>(imu_mag_topic, 1);
+      mPubImuMag = mNhNs.advertise<sensor_msgs::msg::MagneticField>(imu_mag_topic, 1);
       NODELET_INFO_STREAM(" * Advertised on topic " << mPubImuMag.getTopic());
 
       // Atmospheric pressure
-      mPubPressure = mNhNs.advertise<sensor_msgs::FluidPressure>(pressure_topic, 1);
+      mPubPressure = mNhNs.advertise<sensor_msgs::msg::FluidPressure>(pressure_topic, 1);
       NODELET_INFO_STREAM(" * Advertised on topic " << mPubPressure.getTopic());
 
       // CMOS sensor temperatures
-      mPubTempL = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_left, 1);
+      mPubTempL = mNhNs.advertise<sensor_msgs::msg::Temperature>(temp_topic_left, 1);
       NODELET_INFO_STREAM(" * Advertised on topic " << mPubTempL.getTopic());
-      mPubTempR = mNhNs.advertise<sensor_msgs::Temperature>(temp_topic_right, 1);
+      mPubTempR = mNhNs.advertise<sensor_msgs::msg::Temperature>(temp_topic_right, 1);
       NODELET_INFO_STREAM(" * Advertised on topic " << mPubTempR.getTopic());
     }
 
@@ -603,12 +603,12 @@ void ZEDWrapperNodelet::onInit()
     if (mZedRealCamModel != sl::MODEL::ZED)
     {
       std::string cam_imu_tr_topic = "left_cam_imu_transform";
-      mPubCamImuTransf = mNhNs.advertise<geometry_msgs::Transform>(cam_imu_tr_topic, 1, true);
+      mPubCamImuTransf = mNhNs.advertise<geometry_msgs::msg::Transform>(cam_imu_tr_topic, 1, true);
 
       sl::Orientation sl_rot = mSlCamImuTransf.getOrientation();
       sl::Translation sl_tr = mSlCamImuTransf.getTranslation();
 
-      mCameraImuTransfMgs = boost::make_shared<geometry_msgs::Transform>();
+      mCameraImuTransfMgs = boost::make_shared<geometry_msgs::msg::Transform>();
 
       mCameraImuTransfMgs->rotation.x = sl_rot.ox;
       mCameraImuTransfMgs->rotation.y = sl_rot.oy;
@@ -629,7 +629,7 @@ void ZEDWrapperNodelet::onInit()
 
     if (!mSvoMode && !mSensTimestampSync)
     {
-      mFrameTimestamp = ros::Time::now();
+      mFrameTimestamp = rclcpp::Time::now();
       mSensPeriodMean_usec.reset(new sl_tools::CSmartMean(mSensPubRate / 2));
     }
     else
@@ -1640,8 +1640,8 @@ bool ZEDWrapperNodelet::getCamera2BaseTransform()
   try
   {
     // Save the transformation
-    geometry_msgs::TransformStamped c2b =
-        mTfBuffer->lookupTransform(mCameraFrameId, mBaseFrameId, ros::Time(0), ros::Duration(0.1));
+    geometry_msgs::msg::TransformStamped c2b =
+        mTfBuffer->lookupTransform(mCameraFrameId, mBaseFrameId, rclcpp::Time(0), rclcpp::Duration(0.1));
 
     // Get the TF2 transformation
     tf2::fromMsg(c2b.transform, mCamera2BaseTransf);
@@ -1691,8 +1691,8 @@ bool ZEDWrapperNodelet::getSens2CameraTransform()
   try
   {
     // Save the transformation
-    geometry_msgs::TransformStamped s2c =
-        mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, ros::Time(0), ros::Duration(0.1));
+    geometry_msgs::msg::TransformStamped s2c =
+        mTfBuffer->lookupTransform(mDepthFrameId, mCameraFrameId, rclcpp::Time(0), rclcpp::Duration(0.1));
     // Get the TF2 transformation
     tf2::fromMsg(s2c.transform, mSensor2CameraTransf);
 
@@ -1742,8 +1742,8 @@ bool ZEDWrapperNodelet::getSens2BaseTransform()
   try
   {
     // Save the transformation
-    geometry_msgs::TransformStamped s2b =
-        mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, ros::Time(0), ros::Duration(0.1));
+    geometry_msgs::msg::TransformStamped s2b =
+        mTfBuffer->lookupTransform(mDepthFrameId, mBaseFrameId, rclcpp::Time(0), rclcpp::Duration(0.1));
     // Get the TF2 transformation
     tf2::fromMsg(s2b.transform, mSensor2BaseTransf);
 
@@ -1831,7 +1831,7 @@ bool ZEDWrapperNodelet::set_pose(float xt, float yt, float zt, float rr, float p
   return (mSensor2BaseTransfValid & mSensor2CameraTransfValid & mCamera2BaseTransfValid);
 }
 
-bool ZEDWrapperNodelet::on_set_pose(zed_interfaces::set_pose::Request& req, zed_interfaces::set_pose::Response& res)
+bool ZEDWrapperNodelet::on_set_pose(zed_interfaces::srv::set_pose::Request& req, zed_interfaces::srv::set_pose::Response& res)
 {
   mInitialBasePose.resize(6);
   mInitialBasePose[0] = req.x;
@@ -1850,8 +1850,8 @@ bool ZEDWrapperNodelet::on_set_pose(zed_interfaces::set_pose::Request& req, zed_
   return true;
 }
 
-bool ZEDWrapperNodelet::on_reset_tracking(zed_interfaces::reset_tracking::Request& req,
-                                          zed_interfaces::reset_tracking::Response& res)
+bool ZEDWrapperNodelet::on_reset_tracking(zed_interfaces::srv::reset_tracking::Request& req,
+                                          zed_interfaces::srv::reset_tracking::Response& res)
 {
   if (!mPosTrackingStarted)
   {
@@ -1868,8 +1868,8 @@ bool ZEDWrapperNodelet::on_reset_tracking(zed_interfaces::reset_tracking::Reques
   return true;
 }
 
-bool ZEDWrapperNodelet::on_reset_odometry(zed_interfaces::reset_odometry::Request& req,
-                                          zed_interfaces::reset_odometry::Response& res)
+bool ZEDWrapperNodelet::on_reset_odometry(zed_interfaces::srv::reset_odometry::Request& req,
+                                          zed_interfaces::srv::reset_odometry::Response& res)
 {
   std::lock_guard<std::mutex> lock(mOdomMutex);
   mOdom2BaseTransf.setIdentity();
@@ -1943,14 +1943,14 @@ bool ZEDWrapperNodelet::start_3d_mapping()
     if (mPubFusedCloud.getTopic().empty())
     {
       std::string pointcloud_fused_topic = "mapping/fused_cloud";
-      mPubFusedCloud = mNhNs.advertise<sensor_msgs::PointCloud2>(pointcloud_fused_topic, 1);
+      mPubFusedCloud = mNhNs.advertise<sensor_msgs::msg::PointCloud2>(pointcloud_fused_topic, 1);
       NODELET_INFO_STREAM(" * Advertised on topic " << mPubFusedCloud.getTopic() << " @ " << mFusedPcPubFreq << " Hz");
     }
 
     mMappingRunning = true;
 
     mFusedPcTimer =
-        mNhNs.createTimer(ros::Duration(1.0 / mFusedPcPubFreq), &ZEDWrapperNodelet::callback_pubFusedPointCloud, this);
+        mNhNs.createTimer(rclcpp::Duration(1.0 / mFusedPcPubFreq), &ZEDWrapperNodelet::callback_pubFusedPointCloud, this);
 
     NODELET_INFO_STREAM(" * Resolution: " << params.resolution_meter << " m");
     NODELET_INFO_STREAM(" * Max Mapping Range: " << params.range_meter << " m");
@@ -2060,7 +2060,7 @@ bool ZEDWrapperNodelet::start_obj_detect()
     std::string object_det_topic_root = "obj_det";
     std::string object_det_topic = object_det_topic_root + "/objects";
 
-    mPubObjDet = mNhNs.advertise<zed_interfaces::ObjectsStamped>(object_det_topic, 1);
+    mPubObjDet = mNhNs.advertise<zed_interfaces::msg::ObjectsStamped>(object_det_topic, 1);
     NODELET_INFO_STREAM(" * Advertised on topic " << mPubObjDet.getTopic());
   }
 
@@ -2079,7 +2079,7 @@ void ZEDWrapperNodelet::stop_obj_detect()
 
     // ----> Send an empty message to indicate that no more objects are tracked
     // (e.g clean Rviz2)
-    zed_interfaces::ObjectsStampedPtr objMsg = boost::make_shared<zed_interfaces::ObjectsStamped>();
+    zed_interfaces::msg::ObjectsStampedPtr objMsg = boost::make_shared<zed_interfaces::msg::ObjectsStamped>();
 
     objMsg->header.stamp = mFrameTimestamp;
     objMsg->header.frame_id = mLeftCamFrameId;
@@ -2188,8 +2188,8 @@ void ZEDWrapperNodelet::start_pos_tracking()
   }
 }
 
-bool ZEDWrapperNodelet::on_save_area_memory(zed_interfaces::save_area_memory::Request& req,
-                                            zed_interfaces::save_area_memory::Response& res)
+bool ZEDWrapperNodelet::on_save_area_memory(zed_interfaces::srv::save_area_memory::Request& req,
+                                            zed_interfaces::srv::save_area_memory::Response& res)
 {
   std::string file_path = sl_tools::resolveFilePath(req.area_memory_filename);
 
@@ -2283,13 +2283,13 @@ bool ZEDWrapperNodelet::saveAreaMap(std::string file_path, std::string* out_msg)
   return false;
 }
 
-void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, ros::Time t)
+void ZEDWrapperNodelet::publishOdom(tf2::Transform odom2baseTransf, sl::Pose& slPose, rclcpp::Time t)
 {
   size_t odomSub = mPubOdom.getNumSubscribers();
 
   if (odomSub)
   {
-    nav_msgs::OdometryPtr odomMsg = boost::make_shared<nav_msgs::Odometry>();
+    nav_msgs::msg::OdometryPtr odomMsg = boost::make_shared<nav_msgs::msg::Odometry>();
 
     odomMsg->header.stamp = t;
     odomMsg->header.frame_id = mOdomFrameId;  // frame
@@ -2329,11 +2329,11 @@ void ZEDWrapperNodelet::publishPose()
   size_t poseSub = mPubPose.getNumSubscribers();
   size_t poseCovSub = mPubPoseCov.getNumSubscribers();
 
-  std_msgs::Header header;
+  std_msgs::msg::Header header;
   header.stamp = mFrameTimestamp;
   header.frame_id = mMapFrameId;  // frame
 
-  geometry_msgs::Pose pose;
+  geometry_msgs::msg::Pose pose;
 
   // Add all value in Pose message
   pose.position.x = mMap2BaseTransf.getOrigin().x();
@@ -2346,7 +2346,7 @@ void ZEDWrapperNodelet::publishPose()
 
   if (poseSub > 0)
   {
-    geometry_msgs::PoseStampedPtr poseNoCov = boost::make_shared<geometry_msgs::PoseStamped>();
+    geometry_msgs::msg::PoseStampedPtr poseNoCov = boost::make_shared<geometry_msgs::msg::PoseStamped>();
 
     poseNoCov->header = header;
     poseNoCov->pose = pose;
@@ -2358,8 +2358,8 @@ void ZEDWrapperNodelet::publishPose()
 
   if (poseCovSub > 0)
   {
-    geometry_msgs::PoseWithCovarianceStampedPtr poseCov =
-        boost::make_shared<geometry_msgs::PoseWithCovarianceStamped>();
+    geometry_msgs::msg::PoseWithCovarianceStampedPtr poseCov =
+        boost::make_shared<geometry_msgs::msg::PoseWithCovarianceStamped>();
 
     poseCov->header = header;
     poseCov->pose.pose = pose;
@@ -2398,7 +2398,7 @@ void ZEDWrapperNodelet::publishStaticImuFrame()
     return;
   }
 
-  mStaticImuTransformStamped.header.stamp = ros::Time::now();
+  mStaticImuTransformStamped.header.stamp = rclcpp::Time::now();
   mStaticImuTransformStamped.header.frame_id = mLeftCamFrameId;
   mStaticImuTransformStamped.child_frame_id = mImuFrameId;
   sl::Translation sl_tr = mSlCamImuTransf.getTranslation();
@@ -2419,16 +2419,16 @@ void ZEDWrapperNodelet::publishStaticImuFrame()
   mStaticImuFramePublished = true;
 }
 
-void ZEDWrapperNodelet::publishImage(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat img,
-                                     image_transport::CameraPublisher& pubImg, sensor_msgs::CameraInfoPtr camInfoMsg,
-                                     std::string imgFrameId, ros::Time t)
+void ZEDWrapperNodelet::publishImage(sensor_msgs::msg::ImagePtr imgMsgPtr, sl::Mat img,
+                                     image_transport::CameraPublisher& pubImg, sensor_msgs::msg::CameraInfoPtr camInfoMsg,
+                                     std::string imgFrameId, rclcpp::Time t)
 {
   camInfoMsg->header.stamp = t;
   sl_tools::imageToROSmsg(imgMsgPtr, img, imgFrameId, t);
   pubImg.publish(imgMsgPtr, camInfoMsg);
 }
 
-void ZEDWrapperNodelet::publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat depth, ros::Time t)
+void ZEDWrapperNodelet::publishDepth(sensor_msgs::msg::ImagePtr imgMsgPtr, sl::Mat depth, rclcpp::Time t)
 {
   mDepthCamInfoMsg->header.stamp = t;
 
@@ -2448,12 +2448,12 @@ void ZEDWrapperNodelet::publishDepth(sensor_msgs::ImagePtr imgMsgPtr, sl::Mat de
   mPubDepth.publish(imgMsgPtr, mDepthCamInfoMsg);
 }
 
-void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, ros::Time t)
+void ZEDWrapperNodelet::publishDisparity(sl::Mat disparity, rclcpp::Time t)
 {
   sl::CameraInformation zedParam = mZed.getCameraInformation(mMatResol);
 
-  sensor_msgs::ImagePtr disparityImgMsg = boost::make_shared<sensor_msgs::Image>();
-  stereo_msgs::DisparityImagePtr disparityMsg = boost::make_shared<stereo_msgs::DisparityImage>();
+  sensor_msgs::msg::ImagePtr disparityImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
+  stereo_msgs::msg::DisparityImagePtr disparityMsg = boost::make_shared<stereo_msgs::msg::DisparityImage>();
 
   sl_tools::imageToROSmsg(disparityImgMsg, disparity, mDisparityFrameId, t);
 
@@ -2521,7 +2521,7 @@ void ZEDWrapperNodelet::pointcloud_thread_func()
 
 void ZEDWrapperNodelet::publishPointCloud()
 {
-  sensor_msgs::PointCloud2Ptr pointcloudMsg = boost::make_shared<sensor_msgs::PointCloud2>();
+  sensor_msgs::msg::PointCloud2Ptr pointcloudMsg = boost::make_shared<sensor_msgs::msg::PointCloud2>();
 
   // Publish freq calculation
   static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
@@ -2549,9 +2549,9 @@ void ZEDWrapperNodelet::publishPointCloud()
     pointcloudMsg->width = mMatResol.width;
     pointcloudMsg->height = mMatResol.height;
 
-    sensor_msgs::PointCloud2Modifier modifier(*pointcloudMsg);
-    modifier.setPointCloud2Fields(4, "x", 1, sensor_msgs::PointField::FLOAT32, "y", 1, sensor_msgs::PointField::FLOAT32,
-                                  "z", 1, sensor_msgs::PointField::FLOAT32, "rgb", 1, sensor_msgs::PointField::FLOAT32);
+    sensor_msgs::msg::PointCloud2Modifier modifier(*pointcloudMsg);
+    modifier.setPointCloud2Fields(4, "x", 1, sensor_msgs::msg::PointField::FLOAT32, "y", 1, sensor_msgs::msg::PointField::FLOAT32,
+                                  "z", 1, sensor_msgs::msg::PointField::FLOAT32, "rgb", 1, sensor_msgs::msg::PointField::FLOAT32);
   }
 
   // Data copy
@@ -2565,9 +2565,9 @@ void ZEDWrapperNodelet::publishPointCloud()
   mPubCloud.publish(pointcloudMsg);
 }
 
-void ZEDWrapperNodelet::callback_pubFusedPointCloud(const ros::TimerEvent& e)
+void ZEDWrapperNodelet::callback_pubFusedPointCloud(const rclcpp::TimerEvent& e)
 {
-  sensor_msgs::PointCloud2Ptr pointcloudFusedMsg = boost::make_shared<sensor_msgs::PointCloud2>();
+  sensor_msgs::msg::PointCloud2Ptr pointcloudFusedMsg = boost::make_shared<sensor_msgs::msg::PointCloud2>();
 
   uint32_t fusedCloudSubnumber = mPubFusedCloud.getNumSubscribers();
 
@@ -2613,9 +2613,9 @@ void ZEDWrapperNodelet::callback_pubFusedPointCloud(const ros::TimerEvent& e)
     pointcloudFusedMsg->width = ptsCount;
     pointcloudFusedMsg->height = 1;
 
-    sensor_msgs::PointCloud2Modifier modifier(*pointcloudFusedMsg);
-    modifier.setPointCloud2Fields(4, "x", 1, sensor_msgs::PointField::FLOAT32, "y", 1, sensor_msgs::PointField::FLOAT32,
-                                  "z", 1, sensor_msgs::PointField::FLOAT32, "rgb", 1, sensor_msgs::PointField::FLOAT32);
+    sensor_msgs::msg::PointCloud2Modifier modifier(*pointcloudFusedMsg);
+    modifier.setPointCloud2Fields(4, "x", 1, sensor_msgs::msg::PointField::FLOAT32, "y", 1, sensor_msgs::msg::PointField::FLOAT32,
+                                  "z", 1, sensor_msgs::msg::PointField::FLOAT32, "rgb", 1, sensor_msgs::msg::PointField::FLOAT32);
 
     resized = true;
   }
@@ -2661,7 +2661,7 @@ void ZEDWrapperNodelet::callback_pubFusedPointCloud(const ros::TimerEvent& e)
   mPubFusedCloud.publish(pointcloudFusedMsg);
 }
 
-void ZEDWrapperNodelet::publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg, ros::Publisher pubCamInfo, ros::Time t)
+void ZEDWrapperNodelet::publishCamInfo(sensor_msgs::msg::CameraInfoPtr camInfoMsg, ros::Publisher pubCamInfo, rclcpp::Time t)
 {
   static int seq = 0;
   camInfoMsg->header.stamp = t;
@@ -2670,8 +2670,8 @@ void ZEDWrapperNodelet::publishCamInfo(sensor_msgs::CameraInfoPtr camInfoMsg, ro
   seq++;
 }
 
-void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr leftCamInfoMsg,
-                                    sensor_msgs::CameraInfoPtr rightCamInfoMsg, std::string leftFrameId,
+void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::msg::CameraInfoPtr leftCamInfoMsg,
+                                    sensor_msgs::msg::CameraInfoPtr rightCamInfoMsg, std::string leftFrameId,
                                     std::string rightFrameId, bool rawParam /*= false*/)
 {
   sl::CalibrationParameters zedParam;
@@ -2750,7 +2750,7 @@ void ZEDWrapperNodelet::fillCamInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr 
   rightCamInfoMsg->header.frame_id = rightFrameId;
 }
 
-void ZEDWrapperNodelet::fillCamDepthInfo(sl::Camera& zed, sensor_msgs::CameraInfoPtr depth_info_msg,
+void ZEDWrapperNodelet::fillCamDepthInfo(sl::Camera& zed, sensor_msgs::msg::CameraInfoPtr depth_info_msg,
                                          std::string frame_id)
 {
   sl::CalibrationParameters zedParam;
@@ -3109,10 +3109,10 @@ void ZEDWrapperNodelet::pubVideoDepth()
   // <---- Retrieve all required image data
 
   // ----> Data ROS timestamp
-  ros::Time stamp = sl_tools::slTime2Ros(grab_ts);
+  rclcpp::Time stamp = sl_tools::slTime2Ros(grab_ts);
   if (mSvoMode)
   {
-    stamp = ros::Time::now();
+    stamp = rclcpp::Time::now();
   }
   // <---- Data ROS timestamp
 
@@ -3165,77 +3165,77 @@ void ZEDWrapperNodelet::pubVideoDepth()
   // Publish the left = rgb image if someone has subscribed to
   if (leftSubnumber > 0)
   {
-    sensor_msgs::ImagePtr leftImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr leftImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     publishImage(leftImgMsg, mat_left, mPubLeft, mLeftCamInfoMsg, mLeftCamOptFrameId, stamp);
   }
   if (rgbSubnumber > 0)
   {
-    sensor_msgs::ImagePtr rgbImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr rgbImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     publishImage(rgbImgMsg, mat_left, mPubRgb, mRgbCamInfoMsg, mDepthOptFrameId, stamp);
   }
 
   // Publish the left = rgb GRAY image if someone has subscribed to
   if (leftGraySubnumber > 0)
   {
-    sensor_msgs::ImagePtr leftGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr leftGrayImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     publishImage(leftGrayImgMsg, mat_left_gray, mPubLeftGray, mLeftCamInfoMsg, mLeftCamOptFrameId, stamp);
   }
   if (rgbGraySubnumber > 0)
   {
-    sensor_msgs::ImagePtr rgbGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr rgbGrayImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     publishImage(rgbGrayImgMsg, mat_left_gray, mPubRgbGray, mRgbCamInfoMsg, mDepthOptFrameId, stamp);
   }
 
   // Publish the left_raw = rgb_raw image if someone has subscribed to
   if (leftRawSubnumber > 0)
   {
-    sensor_msgs::ImagePtr rawLeftImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr rawLeftImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     publishImage(rawLeftImgMsg, mat_left_raw, mPubRawLeft, mLeftCamInfoRawMsg, mLeftCamOptFrameId, stamp);
   }
   if (rgbRawSubnumber > 0)
   {
-    sensor_msgs::ImagePtr rawRgbImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr rawRgbImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     publishImage(rawRgbImgMsg, mat_left_raw, mPubRawRgb, mRgbCamInfoRawMsg, mDepthOptFrameId, stamp);
   }
 
   // Publish the left_raw == rgb_raw GRAY image if someone has subscribed to
   if (leftGrayRawSubnumber > 0)
   {
-    sensor_msgs::ImagePtr rawLeftGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr rawLeftGrayImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
 
     publishImage(rawLeftGrayImgMsg, mat_left_raw_gray, mPubRawLeftGray, mLeftCamInfoRawMsg, mLeftCamOptFrameId, stamp);
   }
   if (rgbGrayRawSubnumber > 0)
   {
-    sensor_msgs::ImagePtr rawRgbGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr rawRgbGrayImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     publishImage(rawRgbGrayImgMsg, mat_left_raw_gray, mPubRawRgbGray, mRgbCamInfoRawMsg, mDepthOptFrameId, stamp);
   }
 
   // Publish the right image if someone has subscribed to
   if (rightSubnumber > 0)
   {
-    sensor_msgs::ImagePtr rightImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr rightImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     publishImage(rightImgMsg, mat_right, mPubRight, mRightCamInfoMsg, mRightCamOptFrameId, stamp);
   }
 
   // Publish the right image GRAY if someone has subscribed to
   if (rightGraySubnumber > 0)
   {
-    sensor_msgs::ImagePtr rightGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr rightGrayImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     publishImage(rightGrayImgMsg, mat_right_gray, mPubRightGray, mRightCamInfoMsg, mRightCamOptFrameId, stamp);
   }
 
   // Publish the right raw image if someone has subscribed to
   if (rightRawSubnumber > 0)
   {
-    sensor_msgs::ImagePtr rawRightImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr rawRightImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     publishImage(rawRightImgMsg, mat_right_raw, mPubRawRight, mRightCamInfoRawMsg, mRightCamOptFrameId, stamp);
   }
 
   // Publish the right raw image GRAY if someone has subscribed to
   if (rightGrayRawSubnumber > 0)
   {
-    sensor_msgs::ImagePtr rawRightGrayImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr rawRightGrayImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     publishImage(rawRightGrayImgMsg, mat_right_raw_gray, mPubRawRightGray, mRightCamInfoRawMsg, mRightCamOptFrameId,
                  stamp);
   }
@@ -3243,7 +3243,7 @@ void ZEDWrapperNodelet::pubVideoDepth()
   // Stereo couple side-by-side
   if (stereoSubNumber > 0)
   {
-    sensor_msgs::ImagePtr stereoImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr stereoImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     sl_tools::imagesToROSmsg(stereoImgMsg, mat_left, mat_right, mCameraFrameId, stamp);
     mPubStereo.publish(stereoImgMsg);
   }
@@ -3251,7 +3251,7 @@ void ZEDWrapperNodelet::pubVideoDepth()
   // Stereo RAW couple side-by-side
   if (stereoRawSubNumber > 0)
   {
-    sensor_msgs::ImagePtr rawStereoImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr rawStereoImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     sl_tools::imagesToROSmsg(rawStereoImgMsg, mat_left_raw, mat_right_raw, mCameraFrameId, stamp);
     mPubRawStereo.publish(rawStereoImgMsg);
   }
@@ -3259,7 +3259,7 @@ void ZEDWrapperNodelet::pubVideoDepth()
   // Publish the depth image if someone has subscribed to
   if (depthSubnumber > 0)
   {
-    sensor_msgs::ImagePtr depthImgMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr depthImgMsg = boost::make_shared<sensor_msgs::msg::Image>();
     publishDepth(depthImgMsg, mat_depth, stamp);
   }
 
@@ -3272,19 +3272,19 @@ void ZEDWrapperNodelet::pubVideoDepth()
   // Publish the confidence map if someone has subscribed to
   if (confMapSubnumber > 0)
   {
-    sensor_msgs::ImagePtr confMapMsg = boost::make_shared<sensor_msgs::Image>();
+    sensor_msgs::msg::ImagePtr confMapMsg = boost::make_shared<sensor_msgs::msg::Image>();
     sl_tools::imageToROSmsg(confMapMsg, mat_conf, mConfidenceOptFrameId, stamp);
     mPubConfMap.publish(confMapMsg);
   }
 }
 
-void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e)
+void ZEDWrapperNodelet::callback_pubPath(const rclcpp::TimerEvent& e)
 {
   uint32_t mapPathSub = mPubMapPath.getNumSubscribers();
   uint32_t odomPathSub = mPubOdomPath.getNumSubscribers();
 
-  geometry_msgs::PoseStamped odomPose;
-  geometry_msgs::PoseStamped mapPose;
+  geometry_msgs::msg::PoseStamped odomPose;
+  geometry_msgs::msg::PoseStamped mapPose;
 
   odomPose.header.stamp = mFrameTimestamp;
   odomPose.header.frame_id = mMapFrameId;  // map_frame
@@ -3337,7 +3337,7 @@ void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e)
 
   if (mapPathSub > 0)
   {
-    nav_msgs::PathPtr mapPathMsg = boost::make_shared<nav_msgs::Path>();
+    nav_msgs::msg::PathPtr mapPathMsg = boost::make_shared<nav_msgs::msg::Path>();
     mapPathMsg->header.frame_id = mMapFrameId;
     mapPathMsg->header.stamp = mFrameTimestamp;
     mapPathMsg->poses = mMapPath;
@@ -3348,7 +3348,7 @@ void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e)
 
   if (odomPathSub > 0)
   {
-    nav_msgs::PathPtr odomPathMsg = boost::make_shared<nav_msgs::Path>();
+    nav_msgs::msg::PathPtr odomPathMsg = boost::make_shared<nav_msgs::msg::Path>();
     odomPathMsg->header.frame_id = mOdomFrameId;
     odomPathMsg->header.stamp = mFrameTimestamp;
     odomPathMsg->poses = mOdomPath;
@@ -3360,7 +3360,7 @@ void ZEDWrapperNodelet::callback_pubPath(const ros::TimerEvent& e)
 
 void ZEDWrapperNodelet::sensors_thread_func()
 {
-  ros::Rate loop_rate(mSensPubRate);
+  rclcpp::Rate loop_rate(mSensPubRate);
 
   std::chrono::steady_clock::time_point prev_usec = std::chrono::steady_clock::now();
 
@@ -3408,7 +3408,7 @@ void ZEDWrapperNodelet::sensors_thread_func()
   NODELET_DEBUG("Sensors thread finished");
 }
 
-void ZEDWrapperNodelet::publishSensData(ros::Time t)
+void ZEDWrapperNodelet::publishSensData(rclcpp::Time t)
 {
   // NODELET_INFO("publishSensData");
 
@@ -3447,13 +3447,13 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
   bool sensors_data_published = false;
 
-  ros::Time ts_imu;
-  ros::Time ts_baro;
-  ros::Time ts_mag;
+  rclcpp::Time ts_imu;
+  rclcpp::Time ts_baro;
+  rclcpp::Time ts_mag;
 
-  static ros::Time lastTs_imu = ros::Time();
-  static ros::Time lastTs_baro = ros::Time();
-  static ros::Time lastT_mag = ros::Time();
+  static rclcpp::Time lastTs_imu = rclcpp::Time();
+  static rclcpp::Time lastTs_baro = rclcpp::Time();
+  static rclcpp::Time lastT_mag = rclcpp::Time();
 
   sl::SensorsData sens_data;
 
@@ -3474,7 +3474,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
     }
   }
 
-  if (t != ros::Time(0))
+  if (t != rclcpp::Time(0))
   {
     ts_imu = t;
     ts_baro = t;
@@ -3514,12 +3514,12 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
   {
     lastTs_imu = ts_imu;
 
-    sensor_msgs::TemperaturePtr imuTempMsg = boost::make_shared<sensor_msgs::Temperature>();
+    sensor_msgs::msg::TemperaturePtr imuTempMsg = boost::make_shared<sensor_msgs::msg::Temperature>();
 
     imuTempMsg->header.stamp = ts_imu;
 
 #ifdef DEBUG_SENS_TS
-    static ros::Time old_ts;
+    static rclcpp::Time old_ts;
     if (old_ts == imuTempMsg->header.stamp)
     {
       NODELET_WARN_STREAM("Publishing IMU data with old timestamp " << old_ts);
@@ -3545,12 +3545,12 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
     if (pressSubNumber > 0)
     {
-      sensor_msgs::FluidPressurePtr pressMsg = boost::make_shared<sensor_msgs::FluidPressure>();
+      sensor_msgs::msg::FluidPressurePtr pressMsg = boost::make_shared<sensor_msgs::msg::FluidPressure>();
 
       pressMsg->header.stamp = ts_baro;
 
 #ifdef DEBUG_SENS_TS
-      static ros::Time old_ts;
+      static rclcpp::Time old_ts;
       if (old_ts == pressMsg->header.stamp)
       {
         NODELET_WARN_STREAM("Publishing BARO data with old timestamp " << old_ts);
@@ -3567,12 +3567,12 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
     if (tempLeftSubNumber > 0)
     {
-      sensor_msgs::TemperaturePtr tempLeftMsg = boost::make_shared<sensor_msgs::Temperature>();
+      sensor_msgs::msg::TemperaturePtr tempLeftMsg = boost::make_shared<sensor_msgs::msg::Temperature>();
 
       tempLeftMsg->header.stamp = ts_baro;
 
 #ifdef DEBUG_SENS_TS
-      static ros::Time old_ts;
+      static rclcpp::Time old_ts;
       if (old_ts == tempLeftMsg->header.stamp)
       {
         NODELET_WARN_STREAM("Publishing BARO data with old timestamp " << old_ts);
@@ -3590,12 +3590,12 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
     if (tempRightSubNumber > 0)
     {
-      sensor_msgs::TemperaturePtr tempRightMsg = boost::make_shared<sensor_msgs::Temperature>();
+      sensor_msgs::msg::TemperaturePtr tempRightMsg = boost::make_shared<sensor_msgs::msg::Temperature>();
 
       tempRightMsg->header.stamp = ts_baro;
 
 #ifdef DEBUG_SENS_TS
-      static ros::Time old_ts;
+      static rclcpp::Time old_ts;
       if (old_ts == tempRightMsg->header.stamp)
       {
         NODELET_WARN_STREAM("Publishing BARO data with old timestamp " << old_ts);
@@ -3620,12 +3620,12 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
     {
       lastT_mag = ts_mag;
 
-      sensor_msgs::MagneticFieldPtr magMsg = boost::make_shared<sensor_msgs::MagneticField>();
+      sensor_msgs::msg::MagneticFieldPtr magMsg = boost::make_shared<sensor_msgs::msg::MagneticField>();
 
       magMsg->header.stamp = ts_mag;
 
 #ifdef DEBUG_SENS_TS
-      static ros::Time old_ts;
+      static rclcpp::Time old_ts;
       if (old_ts == magMsg->header.stamp)
       {
         NODELET_WARN_STREAM("Publishing MAG data with old timestamp " << old_ts);
@@ -3658,12 +3658,12 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
   {
     lastTs_imu = ts_imu;
 
-    sensor_msgs::ImuPtr imuMsg = boost::make_shared<sensor_msgs::Imu>();
+    sensor_msgs::msg::ImuPtr imuMsg = boost::make_shared<sensor_msgs::msg::Imu>();
 
     imuMsg->header.stamp = ts_imu;
 
 #ifdef DEBUG_SENS_TS
-    static ros::Time old_ts;
+    static rclcpp::Time old_ts;
     if (old_ts == imuMsg->header.stamp)
     {
       NODELET_WARN_STREAM("Publishing IMU data with old timestamp " << old_ts);
@@ -3733,7 +3733,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
   {
     lastTs_imu = ts_imu;
 
-    sensor_msgs::ImuPtr imuRawMsg = boost::make_shared<sensor_msgs::Imu>();
+    sensor_msgs::msg::ImuPtr imuRawMsg = boost::make_shared<sensor_msgs::msg::Imu>();
 
     imuRawMsg->header.stamp = ts_imu;
     imuRawMsg->header.frame_id = mImuFrameId;
@@ -3796,7 +3796,7 @@ void ZEDWrapperNodelet::publishSensData(ros::Time t)
 
 void ZEDWrapperNodelet::device_poll_thread_func()
 {
-  ros::Rate loop_rate(mPubFrameRate);
+  rclcpp::Rate loop_rate(mPubFrameRate);
 
   mRecording = false;
 
@@ -3809,7 +3809,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
   // Timestamp initialization
   if (mSvoMode)
   {
-    mFrameTimestamp = ros::Time::now();
+    mFrameTimestamp = rclcpp::Time::now();
   }
   else
   {
@@ -4023,7 +4023,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
         }
         else
         {
-          if ((ros::Time::now() - mPrevFrameTimestamp).toSec() > 5 && !mSvoMode)
+          if ((rclcpp::Time::now() - mPrevFrameTimestamp).toSec() > 5 && !mSvoMode)
           {
             mCloseZedMutex.lock();
             if (mZed.isOpened())
@@ -4085,14 +4085,14 @@ void ZEDWrapperNodelet::device_poll_thread_func()
       // ----> Timestamp
       if (mSvoMode)
       {
-        mFrameTimestamp = ros::Time::now();
+        mFrameTimestamp = rclcpp::Time::now();
       }
       else
       {
         mFrameTimestamp = sl_tools::slTime2Ros(mZed.getTimestamp(sl::TIME_REFERENCE::IMAGE));
       }
       mPrevFrameTimestamp = mFrameTimestamp;
-      ros::Time stamp = mFrameTimestamp;  // Fix processing Timestamp
+      rclcpp::Time stamp = mFrameTimestamp;  // Fix processing Timestamp
       // <---- Timestamp
 
       // Publish Color and Depth images
@@ -4167,8 +4167,8 @@ void ZEDWrapperNodelet::device_poll_thread_func()
 
             try {
                 // Save the transformation from base to frame
-                geometry_msgs::TransformStamped b2m =
-                        mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, ros::Time(0));
+                geometry_msgs::msg::TransformStamped b2m =
+                        mTfBuffer->lookupTransform(mMapFrameId, mBaseFrameId, rclcpp::Time(0));
                 // Get the TF2 transformation
                 tf2::fromMsg(b2m.transform, map_to_base);
             } catch (tf2::TransformException& ex) {
@@ -4253,7 +4253,7 @@ void ZEDWrapperNodelet::device_poll_thread_func()
   NODELET_DEBUG("ZED pool thread finished");
 }  // namespace zed_nodelets
 
-void ZEDWrapperNodelet::processPointcloud(ros::Time ts)
+void ZEDWrapperNodelet::processPointcloud(rclcpp::Time ts)
 {
   // Run the point cloud conversion asynchronously to avoid slowing down
   // all the program
@@ -4488,7 +4488,7 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
 {
   if (mConnStatus != sl::ERROR_CODE::SUCCESS)
   {
-    stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, sl::toString(mConnStatus).c_str());
+    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::ERROR, sl::toString(mConnStatus).c_str());
     return;
   }
 
@@ -4496,7 +4496,7 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
   {
     if (mGrabStatus == sl::ERROR_CODE::SUCCESS /*|| mGrabStatus == sl::ERROR_CODE::NOT_A_NEW_FRAME*/)
     {
-      stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Camera grabbing");
+      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Camera grabbing");
 
       double freq = 1000000. / mGrabPeriodMean_usec->getMean();
       double freq_perc = 100. * freq / mPubFrameRate;
@@ -4576,12 +4576,12 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
     }
     else
     {
-      stat.summaryf(diagnostic_msgs::DiagnosticStatus::ERROR, "Camera error: %s", sl::toString(mGrabStatus).c_str());
+      stat.summaryf(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "Camera error: %s", sl::toString(mGrabStatus).c_str());
     }
   }
   else
   {
-    stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Waiting for data subscriber");
+    stat.summary(diagnostic_msgs::msg::DiagnosticStatus::OK, "Waiting for data subscriber");
     stat.add("Capture", "INACTIVE");
   }
 
@@ -4603,7 +4603,7 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
 
     if (mTempLeft > 70.f || mTempRight > 70.f)
     {
-      stat.summary(diagnostic_msgs::DiagnosticStatus::WARN, "Camera temperature");
+      stat.summary(diagnostic_msgs::msg::DiagnosticStatus::WARN, "Camera temperature");
     }
   }
   else
@@ -4619,7 +4619,7 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
       if (mGrabActive)
       {
         stat.add("SVO Recording", "ERROR");
-        stat.summary(diagnostic_msgs::DiagnosticStatus::WARN,
+        stat.summary(diagnostic_msgs::msg::DiagnosticStatus::WARN,
                      "Error adding frames to SVO file while recording. Check "
                      "free disk space");
       }
@@ -4641,8 +4641,8 @@ void ZEDWrapperNodelet::callback_updateDiagnostic(diagnostic_updater::Diagnostic
   }
 }
 
-bool ZEDWrapperNodelet::on_start_svo_recording(zed_interfaces::start_svo_recording::Request& req,
-                                               zed_interfaces::start_svo_recording::Response& res)
+bool ZEDWrapperNodelet::on_start_svo_recording(zed_interfaces::srv::start_svo_recording::Request& req,
+                                               zed_interfaces::srv::start_svo_recording::Response& res)
 {
   std::lock_guard<std::mutex> lock(mRecMutex);
 
@@ -4712,8 +4712,8 @@ bool ZEDWrapperNodelet::on_start_svo_recording(zed_interfaces::start_svo_recordi
   return true;
 }
 
-bool ZEDWrapperNodelet::on_stop_svo_recording(zed_interfaces::stop_svo_recording::Request& req,
-                                              zed_interfaces::stop_svo_recording::Response& res)
+bool ZEDWrapperNodelet::on_stop_svo_recording(zed_interfaces::srv::stop_svo_recording::Request& req,
+                                              zed_interfaces::srv::stop_svo_recording::Response& res)
 {
   std::lock_guard<std::mutex> lock(mRecMutex);
 
@@ -4735,8 +4735,8 @@ bool ZEDWrapperNodelet::on_stop_svo_recording(zed_interfaces::stop_svo_recording
   return true;
 }
 
-bool ZEDWrapperNodelet::on_start_remote_stream(zed_interfaces::start_remote_stream::Request& req,
-                                               zed_interfaces::start_remote_stream::Response& res)
+bool ZEDWrapperNodelet::on_start_remote_stream(zed_interfaces::srv::start_remote_stream::Request& req,
+                                               zed_interfaces::srv::start_remote_stream::Response& res)
 {
   if (mStreaming)
   {
@@ -4799,8 +4799,8 @@ bool ZEDWrapperNodelet::on_start_remote_stream(zed_interfaces::start_remote_stre
   return true;
 }
 
-bool ZEDWrapperNodelet::on_stop_remote_stream(zed_interfaces::stop_remote_stream::Request& req,
-                                              zed_interfaces::stop_remote_stream::Response& res)
+bool ZEDWrapperNodelet::on_stop_remote_stream(zed_interfaces::srv::stop_remote_stream::Request& req,
+                                              zed_interfaces::srv::stop_remote_stream::Response& res)
 {
   if (mStreaming)
   {
@@ -4814,8 +4814,8 @@ bool ZEDWrapperNodelet::on_stop_remote_stream(zed_interfaces::stop_remote_stream
   return true;
 }
 
-bool ZEDWrapperNodelet::on_set_led_status(zed_interfaces::set_led_status::Request& req,
-                                          zed_interfaces::set_led_status::Response& res)
+bool ZEDWrapperNodelet::on_set_led_status(zed_interfaces::srv::set_led_status::Request& req,
+                                          zed_interfaces::srv::set_led_status::Response& res)
 {
   if (mCamFwVersion < 1523)
   {
@@ -4828,8 +4828,8 @@ bool ZEDWrapperNodelet::on_set_led_status(zed_interfaces::set_led_status::Reques
   return true;
 }
 
-bool ZEDWrapperNodelet::on_toggle_led(zed_interfaces::toggle_led::Request& req,
-                                      zed_interfaces::toggle_led::Response& res)
+bool ZEDWrapperNodelet::on_toggle_led(zed_interfaces::srv::toggle_led::Request& req,
+                                      zed_interfaces::srv::toggle_led::Response& res)
 {
   if (mCamFwVersion < 1523)
   {
@@ -4858,7 +4858,7 @@ bool ZEDWrapperNodelet::on_toggle_led(zed_interfaces::toggle_led::Request& req,
   return true;
 }
 
-bool ZEDWrapperNodelet::on_set_roi(zed_interfaces::set_roi::Request& req, zed_interfaces::set_roi::Response& res)
+bool ZEDWrapperNodelet::on_set_roi(zed_interfaces::srv::set_roi::Request& req, zed_interfaces::srv::set_roi::Response& res)
 {
   NODELET_INFO("** Set ROI service called **");
   NODELET_INFO_STREAM(" * ROI string: " << req.roi.c_str());
@@ -4937,7 +4937,7 @@ bool ZEDWrapperNodelet::on_set_roi(zed_interfaces::set_roi::Request& req, zed_in
   // <---- Set Region of Interest
 }
 
-bool ZEDWrapperNodelet::on_reset_roi(zed_interfaces::reset_roi::Request& req, zed_interfaces::reset_roi::Response& res)
+bool ZEDWrapperNodelet::on_reset_roi(zed_interfaces::srv::reset_roi::Request& req, zed_interfaces::srv::reset_roi::Response& res)
 {
   NODELET_INFO("** Reset ROI service called **");
 
@@ -4960,8 +4960,8 @@ bool ZEDWrapperNodelet::on_reset_roi(zed_interfaces::reset_roi::Request& req, ze
   }
 }
 
-bool ZEDWrapperNodelet::on_start_3d_mapping(zed_interfaces::start_3d_mapping::Request& req,
-                                            zed_interfaces::start_3d_mapping::Response& res)
+bool ZEDWrapperNodelet::on_start_3d_mapping(zed_interfaces::srv::start_3d_mapping::Request& req,
+                                            zed_interfaces::srv::start_3d_mapping::Response& res)
 {
   if (mMappingEnabled && mMappingRunning)
   {
@@ -4987,8 +4987,8 @@ bool ZEDWrapperNodelet::on_start_3d_mapping(zed_interfaces::start_3d_mapping::Re
   return res.done;
 }
 
-bool ZEDWrapperNodelet::on_stop_3d_mapping(zed_interfaces::stop_3d_mapping::Request& req,
-                                           zed_interfaces::stop_3d_mapping::Response& res)
+bool ZEDWrapperNodelet::on_stop_3d_mapping(zed_interfaces::srv::stop_3d_mapping::Request& req,
+                                           zed_interfaces::srv::stop_3d_mapping::Response& res)
 {
   if (mMappingEnabled)
   {
@@ -5007,8 +5007,8 @@ bool ZEDWrapperNodelet::on_stop_3d_mapping(zed_interfaces::stop_3d_mapping::Requ
   return res.done;
 }
 
-bool ZEDWrapperNodelet::on_save_3d_map(zed_interfaces::save_3d_map::Request& req,
-                                       zed_interfaces::save_3d_map::Response& res)
+bool ZEDWrapperNodelet::on_save_3d_map(zed_interfaces::srv::save_3d_map::Request& req,
+                                       zed_interfaces::srv::save_3d_map::Response& res)
 {
   if (!mMappingEnabled)
   {
@@ -5047,7 +5047,7 @@ bool ZEDWrapperNodelet::on_save_3d_map(zed_interfaces::save_3d_map::Request& req
   return true;
 }
 
-bool ZEDWrapperNodelet::on_enable_object_detection(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res)
+bool ZEDWrapperNodelet::on_enable_object_detection(std_srvs::srv::SetBool::Request& req, std_srvs::srv::SetBool::Response& res)
 {
   NODELET_INFO("Called 'enable_object_detection' service");
 
@@ -5111,7 +5111,7 @@ bool ZEDWrapperNodelet::on_enable_object_detection(std_srvs::SetBool::Request& r
   }
 }
 
-void ZEDWrapperNodelet::processDetectedObjects(ros::Time t)
+void ZEDWrapperNodelet::processDetectedObjects(rclcpp::Time t)
 {
   static std::chrono::steady_clock::time_point old_time = std::chrono::steady_clock::now();
 
@@ -5145,7 +5145,7 @@ void ZEDWrapperNodelet::processDetectedObjects(ros::Time t)
 
   size_t objCount = objects.object_list.size();
 
-  zed_interfaces::ObjectsStampedPtr objMsg = boost::make_shared<zed_interfaces::ObjectsStamped>();
+  zed_interfaces::msg::ObjectsStampedPtr objMsg = boost::make_shared<zed_interfaces::msg::ObjectsStamped>();
   objMsg->header.stamp = t;
   objMsg->header.frame_id = mLeftCamFrameId;
 
@@ -5191,7 +5191,7 @@ void ZEDWrapperNodelet::processDetectedObjects(ros::Time t)
   mPubObjDet.publish(objMsg);
 }
 
-void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr msg)
+void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::msg::PointStamped::ConstSharedPtr msg)
 {
   // ----> Check for result subscribers
   uint32_t markerSubNumber = mPubMarker.getNumSubscribers();
@@ -5203,7 +5203,7 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
   }
   // <---- Check for result subscribers
 
-  ros::Time ts = ros::Time::now();
+  rclcpp::Time ts = rclcpp::Time::now();
 
   float X = msg->point.x;
   float Y = msg->point.y;
@@ -5216,8 +5216,8 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
   try
   {
     // Save the transformation
-    geometry_msgs::TransformStamped m2o =
-        mTfBuffer->lookupTransform(mLeftCamOptFrameId, msg->header.frame_id, ros::Time(0), ros::Duration(0.1));
+    geometry_msgs::msg::TransformStamped m2o =
+        mTfBuffer->lookupTransform(mLeftCamOptFrameId, msg->header.frame_id, rclcpp::Time(0), rclcpp::Duration(0.1));
 
     NODELET_INFO("'%s' -> '%s': {%.3f,%.3f,%.3f} {%.3f,%.3f,%.3f,%.3f}", msg->header.frame_id.c_str(),
                  mLeftCamOptFrameId.c_str(), m2o.transform.translation.x, m2o.transform.translation.y,
@@ -5225,7 +5225,7 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
                  m2o.transform.rotation.z, m2o.transform.rotation.w);
 
     // Get the TF2 transformation
-    geometry_msgs::PointStamped ptCam;
+    geometry_msgs::msg::PointStamped ptCam;
 
     tf2::doTransform(*msg, ptCam, m2o);
 
@@ -5286,13 +5286,13 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
   if (markerSubNumber > 0)
   {
     // ----> Publish a blue sphere in the clicked point
-    visualization_msgs::MarkerPtr pt_marker = boost::make_shared<visualization_msgs::Marker>();
+    visualization_msgs::msg::MarkerPtr pt_marker = boost::make_shared<visualization_msgs::msg::Marker>();
     // Set the frame ID and timestamp.  See the TF tutorials for information on these.
     static int hit_pt_id = 0;
     pt_marker->header.stamp = ts;
     // Set the marker action.  Options are ADD and DELETE
-    pt_marker->action = visualization_msgs::Marker::ADD;
-    pt_marker->lifetime = ros::Duration();
+    pt_marker->action = visualization_msgs::msg::Marker::ADD;
+    pt_marker->lifetime = rclcpp::Duration();
 
     // Set the namespace and id for this marker.  This serves to create a unique ID
     // Any marker sent with the same namespace and id will overwrite the old one
@@ -5301,7 +5301,7 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
     pt_marker->header.frame_id = mMapFrameId;
 
     // Set the marker type.
-    pt_marker->type = visualization_msgs::Marker::SPHERE;
+    pt_marker->type = visualization_msgs::msg::Marker::SPHERE;
 
     // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
     pt_marker->pose.position.x = X;
@@ -5328,13 +5328,13 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
     // ----> Publish a blue sphere in the clicked point
 
     // ----> Publish the plane as green mesh
-    visualization_msgs::MarkerPtr plane_marker = boost::make_shared<visualization_msgs::Marker>();
+    visualization_msgs::msg::MarkerPtr plane_marker = boost::make_shared<visualization_msgs::msg::Marker>();
     // Set the frame ID and timestamp.  See the TF tutorials for information on these.
     static int plane_mesh_id = 0;
     plane_marker->header.stamp = ts;
     // Set the marker action.  Options are ADD and DELETE
-    plane_marker->action = visualization_msgs::Marker::ADD;
-    plane_marker->lifetime = ros::Duration();
+    plane_marker->action = visualization_msgs::msg::Marker::ADD;
+    plane_marker->lifetime = rclcpp::Duration();
 
     // Set the namespace and id for this marker.  This serves to create a unique ID
     // Any marker sent with the same namespace and id will overwrite the old one
@@ -5343,7 +5343,7 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
     plane_marker->header.frame_id = mLeftCamFrameId;
 
     // Set the marker type.
-    plane_marker->type = visualization_msgs::Marker::TRIANGLE_LIST;
+    plane_marker->type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
 
     // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
     plane_marker->pose.position.x = 0;
@@ -5400,7 +5400,7 @@ void ZEDWrapperNodelet::clickedPtCallback(geometry_msgs::PointStampedConstPtr ms
   {
     // ----> Publish the plane as custom message
 
-    zed_interfaces::PlaneStampedPtr planeMsg = boost::make_shared<zed_interfaces::PlaneStamped>();
+    zed_interfaces::msg::PlaneStampedPtr planeMsg = boost::make_shared<zed_interfaces::msg::PlaneStamped>();
     planeMsg->header.stamp = ts;
     planeMsg->header.frame_id = mLeftCamFrameId;
 
@@ -5481,7 +5481,7 @@ void ZEDWrapperNodelet::publishPoseStatus()
 
   if (statusSub > 0)
   {
-    zed_interfaces::PosTrackStatusPtr msg = boost::make_shared<zed_interfaces::PosTrackStatus>();
+    zed_interfaces::msg::PosTrackStatusPtr msg = boost::make_shared<zed_interfaces::msg::PosTrackStatus>();
     msg->status = static_cast<uint8_t>(mPosTrackingStatusWorld);
 
     mPubPoseStatus.publish(msg);
@@ -5494,7 +5494,7 @@ void ZEDWrapperNodelet::publishOdomStatus()
 
   if (statusSub > 0)
   {
-    zed_interfaces::PosTrackStatusPtr msg = boost::make_shared<zed_interfaces::PosTrackStatus>();
+    zed_interfaces::msg::PosTrackStatusPtr msg = boost::make_shared<zed_interfaces::msg::PosTrackStatus>();
     msg->status = static_cast<uint8_t>(mPosTrackingStatusCamera);
 
     mPubPoseStatus.publish(msg);
@@ -5666,7 +5666,7 @@ void ZEDWrapperNodelet::processPose()
   }
 }
 
-void ZEDWrapperNodelet::publishTFs(ros::Time t)
+void ZEDWrapperNodelet::publishTFs(rclcpp::Time t)
 {
   // NODELET_DEBUG("publishTFs");
 
@@ -5696,12 +5696,12 @@ void ZEDWrapperNodelet::publishTFs(ros::Time t)
   }
 }
 
-void ZEDWrapperNodelet::publishOdomTF(ros::Time t)
+void ZEDWrapperNodelet::publishOdomTF(rclcpp::Time t)
 {
   // NODELET_DEBUG("publishOdomTF");
 
   // ----> Avoid duplicated TF publishing
-  static ros::Time last_stamp;
+  static rclcpp::Time last_stamp;
 
   if (t == last_stamp)
   {
@@ -5725,7 +5725,7 @@ void ZEDWrapperNodelet::publishOdomTF(ros::Time t)
     getCamera2BaseTransform();
   }
 
-  geometry_msgs::TransformStamped transformStamped;
+  geometry_msgs::msg::TransformStamped transformStamped;
   transformStamped.header.stamp = t;
 
   // NODELET_DEBUG_STREAM(get_logger(), "Odom TS: " << transformStamped.header.stamp);
@@ -5749,12 +5749,12 @@ void ZEDWrapperNodelet::publishOdomTF(ros::Time t)
   mTfBroadcaster.sendTransform(transformStamped);
 }
 
-void ZEDWrapperNodelet::publishPoseTF(ros::Time t)
+void ZEDWrapperNodelet::publishPoseTF(rclcpp::Time t)
 {
   // NODELET_DEBUG("publishPoseTF");
 
   // ----> Avoid duplicated TF publishing
-  static ros::Time last_stamp;
+  static rclcpp::Time last_stamp;
 
   if (t == last_stamp)
   {
@@ -5778,7 +5778,7 @@ void ZEDWrapperNodelet::publishPoseTF(ros::Time t)
     getCamera2BaseTransform();
   }
 
-  geometry_msgs::TransformStamped transformStamped;
+  geometry_msgs::msg::TransformStamped transformStamped;
   transformStamped.header.stamp = t;
   transformStamped.header.frame_id = mMapFrameId;
   transformStamped.child_frame_id = mOdomFrameId;

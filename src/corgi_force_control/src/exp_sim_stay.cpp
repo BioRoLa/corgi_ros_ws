@@ -1,27 +1,27 @@
 #include <iostream>
 
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 #include "Eigen/Dense"
-#include "corgi_msgs/MotorStateStamped.h"
-#include "corgi_msgs/ImpedanceCmdStamped.h"
-#include "corgi_msgs/TriggerStamped.h"
-#include "sensor_msgs/Imu.h"
+#include <corgi_msgs/msg/motor_state_stamped.hpp>
+#include <corgi_msgs/msg/impedance_cmd_stamped.hpp>
+#include <corgi_msgs/msg/trigger_stamped.hpp>
+#include <sensor_msgs/msg/imu.hpp>
 #include "leg_model.hpp"
 #include "force_estimation.hpp"
 
 bool trigger = false;
-sensor_msgs::Imu imu;
-corgi_msgs::MotorStateStamped motor_state;
+sensor_msgs::msg::Imu imu;
+corgi_msgs::msg::MotorStateStamped motor_state;
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg){
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
     trigger = msg.enable;
 }
 
-void imu_cb(const sensor_msgs::Imu::ConstPtr &msg){
+void imu_cb(const sensor_msgs::msg::Imu::ConstSharedPtr &msg){
     imu = *msg;
 }
 
-void motor_state_cb(const corgi_msgs::MotorStateStamped msg){
+void motor_state_cb(const corgi_msgs::msg::MotorStateStamped msg){
     motor_state = msg;
 }
 
@@ -52,27 +52,27 @@ Eigen::Vector4d distribute_forces_(double sa, double sd, double mg, double L, do
 
 int main(int argc, char **argv) {
 
-    ROS_INFO("Simulation Stay Experiment Starts\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiForceControl"), "Simulation Stay Experiment Starts\n");
     
-    ros::init(argc, argv, "imp_sim_stay");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Publisher imp_cmd_pub = nh.advertise<corgi_msgs::ImpedanceCmdStamped>("impedance/command", 1000);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1000, trigger_cb);
-    ros::Subscriber motor_state_sub = nh.subscribe<corgi_msgs::MotorStateStamped>("motor/state", 1000, motor_state_cb);
-    ros::Subscriber imu_sub = nh.subscribe<sensor_msgs::Imu>("imu", 1000, imu_cb);
-    ros::Rate rate(1000);
+    auto nh = rclcpp::Node::make_shared("imp_sim_stay");
+    auto imp_cmd_pub = nh.advertise<corgi_msgs::msg::ImpedanceCmdStamped>("impedance/command", 1000);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1000, trigger_cb);
+    auto motor_state_sub = nh.subscribe<corgi_msgs::msg::MotorStateStamped>("motor/state", 1000, motor_state_cb);
+    auto imu_sub = nh.subscribe<sensor_msgs::msg::Imu>("imu", 1000, imu_cb);
+    rclcpp::Rate rate(1000);
 
-    corgi_msgs::ImpedanceCmdStamped imp_cmd;
+    corgi_msgs::msg::ImpedanceCmdStamped imp_cmd;
 
-    std::vector<corgi_msgs::ImpedanceCmd*> imp_cmd_modules = {
+    std::vector<corgi_msgs::msg::ImpedanceCmd*> imp_cmd_modules = {
         &imp_cmd.module_a,
         &imp_cmd.module_b,
         &imp_cmd.module_c,
         &imp_cmd.module_d
     };
 
-    std::vector<corgi_msgs::MotorState*> motor_state_modules = {
+    std::vector<corgi_msgs::msg::MotorState*> motor_state_modules = {
         &motor_state.module_a,
         &motor_state.module_b,
         &motor_state.module_c,
@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
     }
 
     for (int i=0; i<2000; i++){
-        ros::spinOnce();
+        rclcpp::spin_some(node);
         if (exp_case == 0) {
             imp_cmd_modules[0]->theta += 63/2000.0/180.0*M_PI;
             imp_cmd_modules[1]->theta += 63/2000.0/180.0*M_PI;
@@ -167,12 +167,12 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
     
-    while (ros::ok()) {
-        ros::spinOnce();
+    while (rclcpp::ok()) {
+        rclcpp::spin_some(node);
         
         if (trigger){
             int loop_count = 0;
-            while (ros::ok()) {
+            while (rclcpp::ok()) {
                 // Stay
                 if (loop_count < 2000) {
                 }

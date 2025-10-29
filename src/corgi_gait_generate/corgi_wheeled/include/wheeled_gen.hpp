@@ -4,25 +4,25 @@
 
 #include "Simple_fsm.hpp"
 #include "wheeled_cmd.hpp"
-#include <corgi_msgs/WheelCmd.h>
-#include <corgi_msgs/SteeringCmdStamped.h>
-#include <corgi_msgs/SteeringStateStamped.h>
+#include <corgi_msgs/msg/wheel_cmd.hpp>
+#include <corgi_msgs/msg/steering_cmd_stamped.hpp>
+#include <corgi_msgs/msg/steering_state_stamped.hpp>
 
 class Wheeled : public GaitSelector, public WheeledCmd
 {
 public:
-    Wheeled(ros::NodeHandle& nh);
+    Wheeled(rclcpp::Node& nh);
     ~Wheeled() = default;
     void Roll(int pub_time, int do_pub, bool dir, bool ground_rotate, int voltage, float angle);
 private:
-    void wheelCmdCallback(const corgi_msgs::WheelCmd::ConstPtr& msg);
-    void steerCmdCallback(const corgi_msgs::SteeringCmdStamped::ConstPtr& msg);
+    void wheelCmdCallback(const corgi_msgs::msg::WheelCmd::ConstSharedPtr& msg);
+    void steerCmdCallback(const corgi_msgs::msg::SteeringCmdStamped::ConstSharedPtr& msg);
 
     ros::Subscriber wheel_cmd_sub_;
     ros::Subscriber steer_cmd_sub_;
 
-    corgi_msgs::WheelCmd current_wheel_cmd_;
-    corgi_msgs::SteeringCmdStamped current_steer_cmd_;
+    corgi_msgs::msg::WheelCmd current_wheel_cmd_;
+    corgi_msgs::msg::SteeringCmdStamped current_steer_cmd_;
     
     float beta_adjustment;
     float beta_adjustment_r;

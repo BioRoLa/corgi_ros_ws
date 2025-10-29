@@ -5,12 +5,12 @@
 #include <array>
 #include <string>
 #include <chrono>
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 #include <fstream>
 
-#include "corgi_msgs/MotorCmdStamped.h"
-#include "corgi_msgs/SimDataStamped.h"
-#include "corgi_msgs/TriggerStamped.h"
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
+#include <corgi_msgs/msg/sim_data_stamped.hpp>
+#include <corgi_msgs/msg/trigger_stamped.hpp>
 #include "leg_model.hpp"
 #include "bezier.hpp"
 #include "walk_gait.hpp"
@@ -19,25 +19,25 @@
 #define INIT_THETA (M_PI*17.0/180.0)
 #define INIT_BETA (0.0)
 
-corgi_msgs::TriggerStamped trigger_msg;
-corgi_msgs::SimDataStamped sim_data;
+corgi_msgs::msg::TriggerStamped trigger_msg;
+corgi_msgs::msg::SimDataStamped sim_data;
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg) {
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg) {
     trigger_msg = msg;
 }//end trigger_cb
 
-void robot_cb(const corgi_msgs::SimDataStamped msg) {
+void robot_cb(const corgi_msgs::msg::SimDataStamped msg) {
     sim_data = msg;
 }//end robot_cb
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "stair_climb");
-    ros::NodeHandle nh;
-    ros::Publisher motor_pub = nh.advertise<corgi_msgs::MotorCmdStamped>("motor/command", 1);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1, trigger_cb);
-    ros::Subscriber robot_sub = nh.subscribe<corgi_msgs::SimDataStamped>("sim/data", 1, robot_cb);
-    corgi_msgs::MotorCmdStamped motor_cmd;
-    std::array<corgi_msgs::MotorCmd*, 4> motor_cmd_modules = {
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("stair_climb");
+    auto motor_pub = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1, trigger_cb);
+    auto robot_sub = nh.subscribe<corgi_msgs::msg::SimDataStamped>("sim/data", 1, robot_cb);
+    corgi_msgs::msg::MotorCmdStamped motor_cmd;
+    std::array<corgi_msgs::msg::MotorCmd*, 4> motor_cmd_modules = {
         &motor_cmd.module_a,
         &motor_cmd.module_b,
         &motor_cmd.module_c,
@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
     const double min_step_length = 0.2;
 
     /* Initial variable */
-    ros::Rate rate(sampling_rate);
+    rclcpp::Rate rate(sampling_rate);
     WalkGait walk_gait(false, CoM_bias[0], sampling_rate);
     StairClimb stair_climb(false, CoM_bias, sampling_rate);
     std::array<std::array<double, 4>, 2> eta_list = {{{INIT_THETA, INIT_THETA, INIT_THETA, INIT_THETA},
@@ -133,9 +133,9 @@ int main(int argc, char** argv) {
     walk_gait.set_stand_height(stand_height);
     walk_gait.set_step_length(step_length);
     walk_gait.set_step_height(step_height);
-    while (ros::ok()) {
+    while (rclcpp::ok()) {
         auto one_loop_start = std::chrono::high_resolution_clock::now();
-        ros::spinOnce();
+        rclcpp::spin_some(node);
         if (state == END) {
             break;
         }//end if
@@ -182,7 +182,7 @@ int main(int argc, char** argv) {
                 if (change_step_length && walk_gait.if_touchdown() && (swing_phase[0]==1 || swing_phase[1]==1)) { // walk_gait apply new step_length
                     std::cout << "step_length:" << to_enter_d / (min_steps/2.0) << std::endl;
                 }
-                command_pitch_CoM << ros::Time::now() << "," << (int)trigger_msg.enable << "," << 0.0 << "," << exp_robot_x << "," << stand_height << "\n";
+                command_pitch_CoM << rclcpp::Time::now() << "," << (int)trigger_msg.enable << "," << 0.0 << "," << exp_robot_x << "," << stand_height << "\n";
                 command_count ++;
                 break;
             case STAIR:
@@ -198,7 +198,7 @@ int main(int argc, char** argv) {
                 eta_list = stair_climb.step();
                 pitch = stair_climb.get_pitch();
                 CoM = stair_climb.get_CoM();
-                command_pitch_CoM << ros::Time::now() << "," << (int)trigger_msg.enable << "," << pitch << "," << CoM[0] << "," << CoM[1] << "\n";
+                command_pitch_CoM << rclcpp::Time::now() << "," << (int)trigger_msg.enable << "," << pitch << "," << CoM[0] << "," << CoM[1] << "\n";
                 command_count ++;
                 break;
             case UPPER_WALK:

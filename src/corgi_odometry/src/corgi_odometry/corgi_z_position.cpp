@@ -7,10 +7,10 @@ constexpr double Z_POS_ANALYSIS_RATE = 1000.0;
 
 // Variables
 bool trigger = false;
-corgi_msgs::MotorStateStamped motor_state;
-sensor_msgs::Imu imu;
-corgi_msgs::ContactStateStamped contact_state;
-std_msgs::Float64 prev_z_COM;
+corgi_msgs::msg::MotorStateStamped motor_state;
+sensor_msgs::msg::Imu imu;
+corgi_msgs::msg::ContactStateStamped contact_state;
+std_msgs::msg::Float64 prev_z_COM;
 
 std::vector<std::string> headers = {
     "estimate_z_position",
@@ -24,7 +24,7 @@ std::string output_file_name = "";
 Eigen::VectorXf state = Eigen::VectorXf::Zero(Z_POS_DATA_SIZE);
 
 // Callbacks
-void trigger_cb(const corgi_msgs::TriggerStamped msg){
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
     trigger = msg.enable;
 
     if (RECORD_DATA){output_file_name = msg.output_filename;}
@@ -53,26 +53,26 @@ void trigger_cb(const corgi_msgs::TriggerStamped msg){
             // Initialize the CSV file.
             logger.initCSV(output_file_path, headers);
 
-            ROS_INFO("Saving data to %s\n", output_file_name.c_str());
+            RCLCPP_INFO(rclcpp::get_logger("CorgiOdometry"), "Saving data to %s\n", output_file_name.c_str());
         }
     }
     else {
         if(logger.init){
             logger.finalizeCSV();
-            ROS_INFO("Saved data to %s", output_file_name.c_str());
+            RCLCPP_INFO(rclcpp::get_logger("CorgiOdometry"), "Saved data to %s", output_file_name.c_str());
         }
     }
 }
 
-void motor_state_cb(const corgi_msgs::MotorStateStamped state){
+void motor_state_cb(const corgi_msgs::msg::MotorStateStamped state){
     motor_state = state;
 }
 
-void imu_cb(const sensor_msgs::Imu msg){
+void imu_cb(const sensor_msgs::msg::Imu msg){
     imu = msg;
 }
 
-void contact_cb(const corgi_msgs::ContactStateStamped msg){
+void contact_cb(const corgi_msgs::msg::ContactStateStamped msg){
     contact_state = msg;
 }
 
@@ -115,19 +115,19 @@ double low_pass_filter(double value, double prev_value, double cutoff_freq, doub
 }
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "corgi_z_position");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
+    auto nh = rclcpp::Node::make_shared("corgi_z_position");
 
     // ROS Publishers
-    ros::Publisher z_position_pub = nh.advertise<std_msgs::Float64>("odometry/z_position_hip", 10);
+    auto z_position_pub = nh.advertise<std_msgs::msg::Float64>("odometry/z_position_hip", 10);
     // ROS Subscribers
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", Z_POS_ANALYSIS_RATE, trigger_cb);
-    ros::Subscriber motor_state_sub = nh.subscribe<corgi_msgs::MotorStateStamped>("motor/state", Z_POS_ANALYSIS_RATE, motor_state_cb);
-    ros::Subscriber imu_sub = nh.subscribe<sensor_msgs::Imu>("imu", Z_POS_ANALYSIS_RATE, imu_cb);
-    ros::Subscriber contact_sub = nh.subscribe<corgi_msgs::ContactStateStamped>("odometry/contact", Z_POS_ANALYSIS_RATE, contact_cb);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", Z_POS_ANALYSIS_RATE, trigger_cb);
+    auto motor_state_sub = nh.subscribe<corgi_msgs::msg::MotorStateStamped>("motor/state", Z_POS_ANALYSIS_RATE, motor_state_cb);
+    auto imu_sub = nh.subscribe<sensor_msgs::msg::Imu>("imu", Z_POS_ANALYSIS_RATE, imu_cb);
+    auto contact_sub = nh.subscribe<corgi_msgs::msg::ContactStateStamped>("odometry/contact", Z_POS_ANALYSIS_RATE, contact_cb);
     
-    ros::Rate rate(Z_POS_ANALYSIS_RATE);
+    rclcpp::Rate rate(Z_POS_ANALYSIS_RATE);
 
     Eigen::Quaterniond q;
     double roll = 0;
@@ -136,14 +136,14 @@ int main(int argc, char **argv) {
 
     prev_z_COM.data = 0.0;
 
-    std::vector<corgi_msgs::MotorState*> motor_state_modules = {
+    std::vector<corgi_msgs::msg::MotorState*> motor_state_modules = {
         &motor_state.module_a,
         &motor_state.module_b,
         &motor_state.module_c,
         &motor_state.module_d
     };
 
-    std::vector<corgi_msgs::ContactState*> contact_modules = {
+    std::vector<corgi_msgs::msg::ContactState*> contact_modules = {
         &contact_state.module_a,
         &contact_state.module_b,
         &contact_state.module_c,
@@ -152,9 +152,9 @@ int main(int argc, char **argv) {
 
     double z_leg[4];
 
-    while (ros::ok()){
+    while (rclcpp::ok()){
 
-        ros::spinOnce();
+        rclcpp::spin_some(node);
 
         q = {imu.orientation.w, imu.orientation.x, imu.orientation.y, imu.orientation.z};
         quaternionToEuler(q, roll, pitch, yaw);
@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
                 }
             }
 
-            std_msgs::Float64 z_COM;
+            std_msgs::msg::Float64 z_COM;
             if (contact_heights.empty()) {
                 z_COM.data = prev_z_COM.data;
             } 
@@ -202,14 +202,14 @@ int main(int argc, char **argv) {
                         z_COM.data = *std::min_element(contact_heights.begin(), contact_heights.end());
                         break;    
                     default:
-                        ROS_INFO("Invalid Z_POS_METHOD");
+                        RCLCPP_INFO(rclcpp::get_logger("CorgiOdometry"), "Invalid Z_POS_METHOD");
                 }
             }
             z_COM.data = low_pass_filter(z_COM.data, prev_z_COM.data, 10, Z_POS_ANALYSIS_RATE);
             prev_z_COM.data = z_COM.data;
 
             z_position_pub.publish(z_COM);
-            ROS_INFO("z_COM: %f", z_COM);
+            RCLCPP_INFO(rclcpp::get_logger("CorgiOdometry"), "z_COM: %f", z_COM);
 
             if (RECORD_DATA){
                 state(0) = z_COM.data;

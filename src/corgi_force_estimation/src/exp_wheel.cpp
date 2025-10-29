@@ -2,25 +2,25 @@
 
 bool trigger = false;
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg){
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
     trigger = msg.enable;
 }
 
 
 int main(int argc, char **argv) {
-    ROS_INFO("Corgi Wheel Starts");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiForceEstimation"), "Corgi Wheel Starts");
 
-    ros::init(argc, argv, "corgi_wheel");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Publisher motor_cmd_pub = nh.advertise<corgi_msgs::MotorCmdStamped>("motor/command", 1000);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1000, trigger_cb);
+    auto nh = rclcpp::Node::make_shared("corgi_wheel");
+    auto motor_cmd_pub = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1000);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1000, trigger_cb);
     
-    ros::Rate rate(1000);
+    rclcpp::Rate rate(1000);
 
-    corgi_msgs::MotorCmdStamped motor_cmd;
+    corgi_msgs::msg::MotorCmdStamped motor_cmd;
 
-    std::vector<corgi_msgs::MotorCmd*> motor_cmd_modules = {
+    std::vector<corgi_msgs::msg::MotorCmd*> motor_cmd_modules = {
         &motor_cmd.module_a,
         &motor_cmd.module_b,
         &motor_cmd.module_c,
@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    ROS_INFO("Transform Starts\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiForceEstimation"), "Transform Starts\n");
 
     // transform
     for (int i=0; i<3000; i++) {
@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
 
-    ROS_INFO("Transform Finished\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiForceEstimation"), "Transform Finished\n");
 
     // stay
     for (int i=0; i<2000; i++) {
@@ -74,14 +74,14 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
 
-    while (ros::ok()) {
-        ros::spinOnce();
+    while (rclcpp::ok()) {
+        rclcpp::spin_some(node);
         if (trigger){
-            ROS_INFO("Controller Starts ...\n");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiForceEstimation"), "Controller Starts ...\n");
 
             int loop_count = 0;
-            while (ros::ok()) {
-                ros::spinOnce();
+            while (rclcpp::ok()) {
+                rclcpp::spin_some(node);
 
                 if (loop_count < 500) {
                     velocity += 0.5 / 500.0;

@@ -1,5 +1,5 @@
-#include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
+#include "rclcpp/rclcpp.hpp"
+#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
@@ -10,7 +10,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/filters/passthrough.h>
-#include <visualization_msgs/MarkerArray.h>
+#include <visualization_msgs/msg/marker_array.hpp>
 #include <pcl/search/kdtree.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/features/normal_3d.h>
@@ -24,7 +24,7 @@
 #include <random>
 
 #include <dbscan.hpp>
-#include "corgi_msgs/TriggerStamped.h"
+#include <corgi_msgs/msg/trigger_stamped.hpp>
 
 
 /* Define */
@@ -61,7 +61,7 @@ tf2_ros::Buffer tf_buffer_;
 tf2_ros::TransformListener* tf_listener_;
 std::vector<Eigen::Vector3f> cluster_centroids;
 std::array<std::vector<Range>, 2> global_range;
-corgi_msgs::TriggerStamped trigger_msg;
+corgi_msgs::msg::TriggerStamped trigger_msg;
 int could_seq = 0;
 std::vector<int> global_histogram;
 
@@ -365,13 +365,13 @@ void group_by_normals(std::vector<NormalPoint>& points, int max_iter = 2) {
 }//end group_by_normals
 
 
-void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input) {
+void cloudCallback(const sensor_msgs::msg::PointCloud2::ConstSharedPtr& input) {
     could_seq = input->header.seq;
     /* Step 1: Convert the ROS PointCloud2 message to PCL point cloud */
     pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>);
     pcl::fromROSMsg(*input, *cloud);
     if (!cloud->isOrganized()) {
-        ROS_WARN("Point cloud is not organized. Skipping frame.");
+        RCLCPP_WARN(rclcpp::get_logger("CorgiStair"), "Point cloud is not organized. Skipping frame.");
         return;
     }
 
@@ -593,7 +593,7 @@ void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input) {
     #endif // CLUSTER_NORMAL
 
     /* Publish the result */
-    sensor_msgs::PointCloud2 output;
+    sensor_msgs::msg::PointCloud2 output;
     pcl::toROSMsg(*colored_cloud, output);
     output.header = input->header;
     output.header.frame_id = "map";
@@ -602,11 +602,11 @@ void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input) {
 
     #if VISUALIZE_NORMAL    // 可視化法線
     // 可視化 Marker
-    visualization_msgs::MarkerArray marker_array;
-    visualization_msgs::Marker marker_template;
+    visualization_msgs::msg::MarkerArray marker_array;
+    visualization_msgs::msg::Marker marker_template;
     marker_template.header.frame_id = "map";
-    marker_template.type = visualization_msgs::Marker::ARROW;
-    marker_template.action = visualization_msgs::Marker::ADD;
+    marker_template.type = visualization_msgs::msg::Marker::ARROW;
+    marker_template.action = visualization_msgs::msg::Marker::ADD;
     marker_template.scale.x = 0.01;
     marker_template.scale.y = 0.002;
     marker_template.scale.z = 0.002;
@@ -618,7 +618,7 @@ void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input) {
     marker_template.pose.orientation.y = 0.0;
     marker_template.pose.orientation.z = 0.0;
     marker_template.pose.orientation.w = 1.0;  // 這是必要的！不能為 0
-    marker_template.lifetime = ros::Duration(0.1);
+    marker_template.lifetime = rclcpp::Duration(0.1);
 
     // 空間分格子平均
     float grid_size = 0.10f;
@@ -644,10 +644,10 @@ void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input) {
     for (const auto& kv : grid_map) {
         const auto& pt = kv.second;
 
-        visualization_msgs::Marker arrow = marker_template;
+        visualization_msgs::msg::Marker arrow = marker_template;
         arrow.id = id++;
 
-        geometry_msgs::Point start, end;
+        geometry_msgs::msg::Point start, end;
         start.x = pt.x;
         start.y = pt.y;
         start.z = pt.z;
@@ -663,22 +663,22 @@ void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input) {
     #endif // VISUALIZE_NORMAL
 }//end cloudCallback
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg) {
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg) {
     trigger_msg = msg;
 }//end trigger_cb
 
 
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "plane_segmentation_node");
-    ros::NodeHandle nh;
-    ros::Subscriber cloud_sub = nh.subscribe("/zedxm/zed_node/point_cloud/cloud_registered", 1, cloudCallback);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1, trigger_cb);
-    pub = nh.advertise<sensor_msgs::PointCloud2>("plane_segmentation", 1);
-    normal_pub = nh.advertise<visualization_msgs::MarkerArray>("visualization_normals", 1);
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("plane_segmentation_node");
+    auto cloud_sub = nh.subscribe("/zedxm/zed_node/point_cloud/cloud_registered", 1, cloudCallback);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1, trigger_cb);
+    pub = nh.advertise<sensor_msgs::msg::PointCloud2>("plane_segmentation", 1);
+    normal_pub = nh.advertise<visualization_msgs::msg::MarkerArray>("visualization_normals", 1);
     tf_listener_ = new tf2_ros::TransformListener(tf_buffer_);
 
-    ros::Rate rate(10);
+    rclcpp::Rate rate(10);
 
     std::ofstream csv("plane_distances.csv");
     std::ofstream csv_histogram("histogram.csv");
@@ -688,8 +688,8 @@ int main(int argc, char** argv) {
     csv << "Vertical0,";  for (int i = 1; i < 10; ++i) csv << "Vertical"   << i << ",";
     csv << "\n";
 
-    while (ros::ok()) {
-        ros::spinOnce();
+    while (rclcpp::ok()) {
+        rclcpp::spin_some(node);
 
         csv << could_seq << ",";
         csv << (int)trigger_msg.enable << ",";

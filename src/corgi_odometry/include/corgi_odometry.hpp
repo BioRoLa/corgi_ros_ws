@@ -34,15 +34,15 @@ inline constexpr float FILTE_VEL_CUT_OFF_FREQ = 10.0; //Hz
 #include <Eigen/Geometry>
 #include <algorithm>
 #include <numeric>
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 /******* ROS msg *******/
 
-#include "corgi_msgs/MotorStateStamped.h"
-#include "corgi_msgs/TriggerStamped.h"
-#include "corgi_msgs/ContactStateStamped.h"
-#include "sensor_msgs/Imu.h"
-#include <std_msgs/Float64.h>
+#include <corgi_msgs/msg/motor_state_stamped.hpp>
+#include <corgi_msgs/msg/trigger_stamped.hpp>
+#include <corgi_msgs/msg/contact_state_stamped.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#include <std_msgs/msg/float64.hpp>
 
 /******* Leg kinematic *******/ 
 #include "leg_model.hpp"
@@ -74,14 +74,14 @@ inline constexpr int Z_POS_DATA_SIZE = 9;
 
 class Encoder{
     public:
-        Encoder(corgi_msgs::MotorState* m, sensor_msgs::Imu* i, bool opposite): module(m), imu(i), opposite(opposite) {}
+        Encoder(corgi_msgs::msg::MotorState* m, sensor_msgs::msg::Imu* i, bool opposite): module(m), imu(i), opposite(opposite) {}
         void UpdateState(float dt);
         void init(float dt);
         //const reference, prevent modified
         const Eigen::Matrix<float, 5, 1>& GetState() const{return state;}
     private:
-        corgi_msgs::MotorState* module;
-        sensor_msgs::Imu* imu;
+        corgi_msgs::msg::MotorState* module;
+        sensor_msgs::msg::Imu* imu;
         bool opposite;
         float theta;
         float beta;

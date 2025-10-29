@@ -2,52 +2,52 @@
 #include "mpc.hpp"
 
 bool trigger = false;
-corgi_msgs::ForceStateStamped force_state;
+corgi_msgs::msg::ForceStateStamped force_state;
 
-void force_state_cb(const corgi_msgs::ForceStateStamped msg){
+void force_state_cb(const corgi_msgs::msg::ForceStateStamped msg){
     force_state = msg;
 }
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg){
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
     trigger = msg.enable;
 }
 
 
 int main(int argc, char **argv) {
-    ROS_INFO("Corgi Trot Starts");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "Corgi Trot Starts");
 
     ModelPredictiveController mpc;
     mpc.load_config();
     mpc.target_loop = 600;
 
-    ros::init(argc, argv, "corgi_trot");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Publisher motor_cmd_pub = nh.advertise<corgi_msgs::MotorCmdStamped>("motor/command", 1000);
-    ros::Publisher contact_pub = nh.advertise<corgi_msgs::ContactStateStamped>("odometry/contact", 1000);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1000, trigger_cb);
-    ros::Subscriber force_state_sub = nh.subscribe<corgi_msgs::ForceStateStamped>("force/state", 1000, force_state_cb);
+    auto nh = rclcpp::Node::make_shared("corgi_trot");
+    auto motor_cmd_pub = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1000);
+    auto contact_pub = nh.advertise<corgi_msgs::msg::ContactStateStamped>("odometry/contact", 1000);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1000, trigger_cb);
+    auto force_state_sub = nh.subscribe<corgi_msgs::msg::ForceStateStamped>("force/state", 1000, force_state_cb);
     
-    ros::Rate rate(1000);
+    rclcpp::Rate rate(1000);
 
-    corgi_msgs::MotorCmdStamped motor_cmd;
-    corgi_msgs::ContactStateStamped contact_state;
+    corgi_msgs::msg::MotorCmdStamped motor_cmd;
+    corgi_msgs::msg::ContactStateStamped contact_state;
 
-    std::vector<corgi_msgs::MotorCmd*> motor_cmd_modules = {
+    std::vector<corgi_msgs::msg::MotorCmd*> motor_cmd_modules = {
         &motor_cmd.module_a,
         &motor_cmd.module_b,
         &motor_cmd.module_c,
         &motor_cmd.module_d
     };
 
-    std::vector<corgi_msgs::ContactState*> contact_state_modules = {
+    std::vector<corgi_msgs::msg::ContactState*> contact_state_modules = {
         &contact_state.module_a,
         &contact_state.module_b,
         &contact_state.module_c,
         &contact_state.module_d
     };
 
-    std::vector<corgi_msgs::ForceState*> force_state_modules = {
+    std::vector<corgi_msgs::msg::ForceState*> force_state_modules = {
         &force_state.module_a,
         &force_state.module_b,
         &force_state.module_c,
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    ROS_INFO("Wait ...\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "Wait ...\n");
     
     if (!sim) {
         for (int i=0; i<3000; i++) {
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    ROS_INFO("Transform Starts\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "Transform Starts\n");
 
     // transform
     for (int i=0; i<3000; i++) {
@@ -115,25 +115,25 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
 
-    ROS_INFO("Transform Finished\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "Transform Finished\n");
 
     // stay
     for (int i=0; i<2000; i++) {
-        ros::spinOnce();
+        rclcpp::spin_some(node);
         motor_cmd.header.seq = -1;
         motor_cmd_pub.publish(motor_cmd);
         rate.sleep();
     }
 
-    while (ros::ok()) {
-        ros::spinOnce();
+    while (rclcpp::ok()) {
+        rclcpp::spin_some(node);
         if (trigger){
-            ROS_INFO("Wait For Odometry Node Initializing ...\n");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "Wait For Odometry Node Initializing ...\n");
 
             // wait for odometry node
             if (!sim) {
                 for (int i=0; i<3000; i++) {
-                    ros::spinOnce();
+                    rclcpp::spin_some(node);
                     for (auto& state: contact_state_modules) {
                         state->contact = true;
                     }
@@ -151,11 +151,11 @@ int main(int argc, char **argv) {
                 }
             }
 
-            ROS_INFO("Controller Starts ...\n");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "Controller Starts ...\n");
 
             int loop_count = 0;
-            while (ros::ok()) {
-                ros::spinOnce();
+            while (rclcpp::ok()) {
+                rclcpp::spin_some(node);
 
                 for (int i=0; i<4; i++) {
                     // if (trot_gait.get_swing_phase()[i] == 1) {

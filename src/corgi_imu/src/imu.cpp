@@ -1,7 +1,7 @@
-#include "ros/ros.h"
-#include "sensor_msgs/Imu.h"
-#include "corgi_msgs/imu.h"
-#include "corgi_msgs/Headers.h"
+#include "rclcpp/rclcpp.hpp"
+#include <sensor_msgs/msg/imu.hpp>
+#include <corgi_msgs/srv/imu.hpp>
+#include <corgi_msgs/msg/headers.hpp>
 #include "cx5.hpp" 
 #include <sys/time.h>
 #include <mutex>
@@ -18,16 +18,16 @@ enum SensorMode {
 };            
 
 int mode = REST;
-bool cb(corgi_msgs::imu::Request &req, corgi_msgs::imu::Response &res){
+bool cb(corgi_msgs::srv::imu::Request &req, corgi_msgs::srv::imu::Response &res){
     cb_lock.lock();
     switch (req.mode) {
         case REST:
             mode = REST;
             res.mode = REST;
-            ROS_INFO("Mode set to REST");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiImu"), "Mode set to REST");
             break;
         case CALIBRATION:
-            ROS_INFO("Calibrating...");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiImu"), "Calibrating...");
             mode = SENSOR;
             res.mode = SENSOR;
             imu->calibrate(1000);  // 1 second averaging
@@ -35,15 +35,15 @@ bool cb(corgi_msgs::imu::Request &req, corgi_msgs::imu::Response &res){
         case RESET:
             mode = RESET;
             res.mode = RESET;
-            ROS_INFO("Mode set to RESET");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiImu"), "Mode set to RESET");
             break;
         case SENSOR:
             mode = SENSOR;
             res.mode = SENSOR;
-            ROS_INFO("Mode set to SENSOR");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiImu"), "Mode set to SENSOR");
             break;
         default:
-            ROS_INFO("Invalid mode");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiImu"), "Invalid mode");
             return false;
     }
     return true;
@@ -51,8 +51,8 @@ bool cb(corgi_msgs::imu::Request &req, corgi_msgs::imu::Response &res){
 }
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "imu_node");
-    ros::NodeHandle nh;
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("imu_node");
     
     printf("Starting IMU node\n");
 
@@ -61,24 +61,24 @@ int main(int argc, char **argv) {
 
     imu = std::make_shared<CX5_AHRS>("/dev/ttyTHS0", 921600, 1000, 500); //change the port, baudrate, sensor sample rate, filter sample rate
 
-    ros::Rate rate(1000);
+    rclcpp::Rate rate(1000);
 
-    ros::Publisher pub = nh.advertise<sensor_msgs::Imu>("imu", 1000); // "imu" is the topic name
+    auto pub = nh.advertise<sensor_msgs::msg::Imu>("imu", 1000); // "imu" is the topic name
     ros::ServiceServer srv = nh.advertiseService("imu_service", cb);
 
     std::thread imu_thread([&]() {
         imu->start();
     });
 
-    sensor_msgs::Imu imu_msg;
-    corgi_msgs::Headers headers_msg;
+    sensor_msgs::msg::Imu imu_msg;
+    corgi_msgs::msg::Headers headers_msg;
     headers_msg.frame_id = "imu_base";
 
     Eigen::Vector3f acceleration, twist;
     Eigen::Quaternionf orientation;
     int seq = 0;
 
-    while (ros::ok()) {
+    while (rclcpp::ok()) {
         imu->get(acceleration, twist, orientation);
 
         timeval currentTime;

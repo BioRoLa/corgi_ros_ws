@@ -1,30 +1,30 @@
 #include <iostream>
 
-#include "ros/ros.h"
-#include "corgi_msgs/ImpedanceCmdStamped.h"
-#include "corgi_msgs/TriggerStamped.h"
+#include "rclcpp/rclcpp.hpp"
+#include <corgi_msgs/msg/impedance_cmd_stamped.hpp>
+#include <corgi_msgs/msg/trigger_stamped.hpp>
 #include "force_estimation.hpp"
 
 bool trigger = false;
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg){
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
     trigger = msg.enable;
 }
 
 int main(int argc, char **argv) {
 
-    ROS_INFO("Impedance Command Publisher Starts\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiForceControl"), "Impedance Command Publisher Starts\n");
     
-    ros::init(argc, argv, "imp_cmd_pub");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Publisher imp_cmd_pub = nh.advertise<corgi_msgs::ImpedanceCmdStamped>("impedance/command", 1000);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1000, trigger_cb);
-    ros::Rate rate(1000);
+    auto nh = rclcpp::Node::make_shared("imp_cmd_pub");
+    auto imp_cmd_pub = nh.advertise<corgi_msgs::msg::ImpedanceCmdStamped>("impedance/command", 1000);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1000, trigger_cb);
+    rclcpp::Rate rate(1000);
 
-    corgi_msgs::ImpedanceCmdStamped imp_cmd;
+    corgi_msgs::msg::ImpedanceCmdStamped imp_cmd;
 
-    std::vector<corgi_msgs::ImpedanceCmd*> imp_cmd_modules = {
+    std::vector<corgi_msgs::msg::ImpedanceCmd*> imp_cmd_modules = {
         &imp_cmd.module_a,
         &imp_cmd.module_b,
         &imp_cmd.module_c,
@@ -91,12 +91,12 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
         
-    while (ros::ok()) {
-        ros::spinOnce();
+    while (rclcpp::ok()) {
+        rclcpp::spin_some(node);
         
         if (trigger){
             int loop_count = 0;
-            while (ros::ok()) {
+            while (rclcpp::ok()) {
                 if (loop_count < 2000) {
                     ds = 0.0;
                 }

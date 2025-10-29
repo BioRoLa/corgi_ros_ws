@@ -22,12 +22,12 @@
 #define RGBD_SENSOR_SYNC_HPP
 
 #include <nodelet/nodelet.h>
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/MagneticField.h>
+#include <sensor_msgs/msg/camera_info.hpp>
+#include <sensor_msgs/msg/image.hpp>
+#include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/magnetic_field.hpp>
 
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
@@ -37,7 +37,7 @@
 #include <image_transport/image_transport.h>
 #include <image_transport/subscriber_filter.h>
 
-#include "zed_interfaces/RGBDSensors.h"
+#include <zed_interfaces/msg/rgbd_sensors.hpp>
 
 namespace zed_nodelets
 {
@@ -58,34 +58,34 @@ protected:
 
   /*! \brief Callback for full topics synchronization
    */
-  void callbackFull(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::ImageConstPtr& depth,
-                    const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
-                    const sensor_msgs::CameraInfoConstPtr& depthCameraInfo, const sensor_msgs::ImuConstPtr& imu,
-                    const sensor_msgs::MagneticFieldConstPtr& mag);
+  void callbackFull(const sensor_msgs::msg::Image::ConstSharedPtr& rgb, const sensor_msgs::msg::Image::ConstSharedPtr& depth,
+                    const sensor_msgs::msg::CameraInfo::ConstSharedPtr& rgbCameraInfo,
+                    const sensor_msgs::msg::CameraInfo::ConstSharedPtr& depthCameraInfo, const sensor_msgs::msg::Imu::ConstSharedPtr& imu,
+                    const sensor_msgs::msg::MagneticField::ConstSharedPtr& mag);
 
   /*! \brief Callback for RGBD topics synchronization
    */
-  void callbackRGBD(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::ImageConstPtr& depth,
-                    const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
-                    const sensor_msgs::CameraInfoConstPtr& depthCameraInfo);
+  void callbackRGBD(const sensor_msgs::msg::Image::ConstSharedPtr& rgb, const sensor_msgs::msg::Image::ConstSharedPtr& depth,
+                    const sensor_msgs::msg::CameraInfo::ConstSharedPtr& rgbCameraInfo,
+                    const sensor_msgs::msg::CameraInfo::ConstSharedPtr& depthCameraInfo);
 
   /*! \brief Callback for RGBD + IMU topics synchronization
    */
-  void callbackRGBDIMU(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::ImageConstPtr& depth,
-                       const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
-                       const sensor_msgs::CameraInfoConstPtr& depthCameraInfo, const sensor_msgs::ImuConstPtr& imu);
+  void callbackRGBDIMU(const sensor_msgs::msg::Image::ConstSharedPtr& rgb, const sensor_msgs::msg::Image::ConstSharedPtr& depth,
+                       const sensor_msgs::msg::CameraInfo::ConstSharedPtr& rgbCameraInfo,
+                       const sensor_msgs::msg::CameraInfo::ConstSharedPtr& depthCameraInfo, const sensor_msgs::msg::Imu::ConstSharedPtr& imu);
 
   /*! \brief Callback for RGBD + Mag topics synchronization
    */
-  void callbackRGBDMag(const sensor_msgs::ImageConstPtr& rgb, const sensor_msgs::ImageConstPtr& depth,
-                       const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
-                       const sensor_msgs::CameraInfoConstPtr& depthCameraInfo,
-                       const sensor_msgs::MagneticFieldConstPtr& mag);
+  void callbackRGBDMag(const sensor_msgs::msg::Image::ConstSharedPtr& rgb, const sensor_msgs::msg::Image::ConstSharedPtr& depth,
+                       const sensor_msgs::msg::CameraInfo::ConstSharedPtr& rgbCameraInfo,
+                       const sensor_msgs::msg::CameraInfo::ConstSharedPtr& depthCameraInfo,
+                       const sensor_msgs::msg::MagneticField::ConstSharedPtr& mag);
 
 private:
   // Node handlers
-  ros::NodeHandle mNh;   // Node handler
-  ros::NodeHandle mNhP;  // Private Node handler
+  rclcpp::Node mNh;   // Node handler
+  rclcpp::Node mNhP;  // Private Node handler
 
   // Publishers
   ros::Publisher mPubRaw;
@@ -93,25 +93,25 @@ private:
   // Subscribers
   image_transport::SubscriberFilter mSubRgbImage;
   image_transport::SubscriberFilter mSubDepthImage;
-  message_filters::Subscriber<sensor_msgs::CameraInfo> mSubRgbCamInfo;
-  message_filters::Subscriber<sensor_msgs::CameraInfo> mSubDepthCamInfo;
-  message_filters::Subscriber<sensor_msgs::Imu> mSubImu;
-  message_filters::Subscriber<sensor_msgs::MagneticField> mSubMag;
+  message_filters::Subscriber<sensor_msgs::msg::CameraInfo> mSubRgbCamInfo;
+  message_filters::Subscriber<sensor_msgs::msg::CameraInfo> mSubDepthCamInfo;
+  message_filters::Subscriber<sensor_msgs::msg::Imu> mSubImu;
+  message_filters::Subscriber<sensor_msgs::msg::MagneticField> mSubMag;
 
   // Approx sync policies
-  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image,
-                                                          sensor_msgs::CameraInfo, sensor_msgs::CameraInfo,
-                                                          sensor_msgs::Imu, sensor_msgs::MagneticField>
+  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image,
+                                                          sensor_msgs::msg::CameraInfo, sensor_msgs::msg::CameraInfo,
+                                                          sensor_msgs::msg::Imu, sensor_msgs::msg::MagneticField>
       ApproxFullSyncPolicy;
   typedef message_filters::sync_policies::ApproximateTime<
-      sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::CameraInfo, sensor_msgs::Imu>
+      sensor_msgs::msg::Image, sensor_msgs::msg::Image, sensor_msgs::msg::CameraInfo, sensor_msgs::msg::CameraInfo, sensor_msgs::msg::Imu>
       ApproxRgbdImuSyncPolicy;
-  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image,
-                                                          sensor_msgs::CameraInfo, sensor_msgs::CameraInfo,
-                                                          sensor_msgs::MagneticField>
+  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image,
+                                                          sensor_msgs::msg::CameraInfo, sensor_msgs::msg::CameraInfo,
+                                                          sensor_msgs::msg::MagneticField>
       ApproxRgbdMagSyncPolicy;
-  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image,
-                                                          sensor_msgs::CameraInfo, sensor_msgs::CameraInfo>
+  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image,
+                                                          sensor_msgs::msg::CameraInfo, sensor_msgs::msg::CameraInfo>
       ApproxRgbdSyncPolicy;
   message_filters::Synchronizer<ApproxFullSyncPolicy>* mApproxFullSync = nullptr;
   message_filters::Synchronizer<ApproxRgbdImuSyncPolicy>* mApproxRgbdImuSync = nullptr;
@@ -119,18 +119,18 @@ private:
   message_filters::Synchronizer<ApproxRgbdSyncPolicy>* mApproxRgbdSync = nullptr;
 
   // Exact sync policies
-  typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo,
-                                                    sensor_msgs::CameraInfo, sensor_msgs::Imu,
-                                                    sensor_msgs::MagneticField>
+  typedef message_filters::sync_policies::ExactTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image, sensor_msgs::msg::CameraInfo,
+                                                    sensor_msgs::msg::CameraInfo, sensor_msgs::msg::Imu,
+                                                    sensor_msgs::msg::MagneticField>
       ExactFullSyncPolicy;
-  typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo,
-                                                    sensor_msgs::CameraInfo, sensor_msgs::Imu>
+  typedef message_filters::sync_policies::ExactTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image, sensor_msgs::msg::CameraInfo,
+                                                    sensor_msgs::msg::CameraInfo, sensor_msgs::msg::Imu>
       ExactRgbdImuSyncPolicy;
-  typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo,
-                                                    sensor_msgs::CameraInfo, sensor_msgs::MagneticField>
+  typedef message_filters::sync_policies::ExactTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image, sensor_msgs::msg::CameraInfo,
+                                                    sensor_msgs::msg::CameraInfo, sensor_msgs::msg::MagneticField>
       ExactRgbdMagSyncPolicy;
-  typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo,
-                                                    sensor_msgs::CameraInfo>
+  typedef message_filters::sync_policies::ExactTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image, sensor_msgs::msg::CameraInfo,
+                                                    sensor_msgs::msg::CameraInfo>
       ExactRgbdSyncPolicy;
   message_filters::Synchronizer<ExactFullSyncPolicy>* mExactFullSync = nullptr;
   message_filters::Synchronizer<ExactRgbdImuSyncPolicy>* mExactRgbdImuSync = nullptr;

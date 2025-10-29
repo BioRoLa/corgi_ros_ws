@@ -55,13 +55,13 @@ void RgbdSensorsDemuxNodelet::onInit()
   NODELET_INFO_STREAM(" * Subscribed to topic: " << mSub.getTopic().c_str());
 }
 
-void RgbdSensorsDemuxNodelet::msgCallback(const zed_interfaces::RGBDSensorsPtr& msg)
+void RgbdSensorsDemuxNodelet::msgCallback(const zed_interfaces::msg::RGBDSensorsPtr& msg)
 {
   if (!msg->rgb.header.stamp.isZero())
   {
     if (mPubRgb.getTopic().empty())
     {
-      ros::NodeHandle rgb_pnh(mNhP, "rgb");
+      rclcpp::Node rgb_pnh(mNhP, "rgb");
       image_transport::ImageTransport it(rgb_pnh);
 
       mPubRgb = it.advertiseCamera("image_rect_color", 1);  // rgb
@@ -79,7 +79,7 @@ void RgbdSensorsDemuxNodelet::msgCallback(const zed_interfaces::RGBDSensorsPtr& 
   {
     if (mPubDepth.getTopic().empty())
     {
-      ros::NodeHandle depth_pnh(mNhP, "depth");
+      rclcpp::Node depth_pnh(mNhP, "depth");
       image_transport::ImageTransport it(depth_pnh);
 
       mPubDepth = it.advertiseCamera("depth_registered", 1);  // depth
@@ -97,9 +97,9 @@ void RgbdSensorsDemuxNodelet::msgCallback(const zed_interfaces::RGBDSensorsPtr& 
   {
     if (mPubIMU.getTopic().empty())
     {
-      ros::NodeHandle imu_pnh(mNhP, "imu");
+      rclcpp::Node imu_pnh(mNhP, "imu");
 
-      mPubIMU = imu_pnh.advertise<sensor_msgs::Imu>("data", 1);  // IMU
+      mPubIMU = imu_pnh.advertise<sensor_msgs::msg::Imu>("data", 1);  // IMU
       NODELET_INFO_STREAM("Advertised on topic " << mPubIMU.getTopic());
     }
 
@@ -113,9 +113,9 @@ void RgbdSensorsDemuxNodelet::msgCallback(const zed_interfaces::RGBDSensorsPtr& 
   {
     if (mPubMag.getTopic().empty())
     {
-      ros::NodeHandle imu_pnh(mNhP, "imu");
+      rclcpp::Node imu_pnh(mNhP, "imu");
 
-      mPubMag = imu_pnh.advertise<sensor_msgs::MagneticField>("mag", 1);  // IMU
+      mPubMag = imu_pnh.advertise<sensor_msgs::msg::MagneticField>("mag", 1);  // IMU
       NODELET_INFO_STREAM("Advertised on topic " << mPubMag.getTopic());
     }
 

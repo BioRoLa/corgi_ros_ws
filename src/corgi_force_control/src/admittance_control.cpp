@@ -1,24 +1,24 @@
 #include "force_estimation.hpp"
 
-corgi_msgs::MotorStateStamped motor_state;
-corgi_msgs::ForceStateStamped force_state;
-corgi_msgs::ImpedanceCmdStamped imp_cmd;
-corgi_msgs::MotorCmdStamped motor_cmd;
+corgi_msgs::msg::MotorStateStamped motor_state;
+corgi_msgs::msg::ForceStateStamped force_state;
+corgi_msgs::msg::ImpedanceCmdStamped imp_cmd;
+corgi_msgs::msg::MotorCmdStamped motor_cmd;
 
-void motor_state_cb(const corgi_msgs::MotorStateStamped state){
+void motor_state_cb(const corgi_msgs::msg::MotorStateStamped state){
     motor_state = state;
 }
 
-void force_state_cb(const corgi_msgs::ForceStateStamped state){
+void force_state_cb(const corgi_msgs::msg::ForceStateStamped state){
     force_state = state;
 }
 
-void imp_cmd_cb(const corgi_msgs::ImpedanceCmdStamped cmd){
+void imp_cmd_cb(const corgi_msgs::msg::ImpedanceCmdStamped cmd){
     imp_cmd = cmd;
 }
 
-Eigen::MatrixXd admittance_control(const corgi_msgs::ImpedanceCmd* imp_cmd_, const corgi_msgs::MotorState* motor_state_,
-                                   const corgi_msgs::ForceState* force_state_, Eigen::MatrixXd& pos_err_hist, Eigen::MatrixXd& force_err_hist){
+Eigen::MatrixXd admittance_control(const corgi_msgs::msg::ImpedanceCmd* imp_cmd_, const corgi_msgs::msg::MotorState* motor_state_,
+                                   const corgi_msgs::msg::ForceState* force_state_, Eigen::MatrixXd& pos_err_hist, Eigen::MatrixXd& force_err_hist){
     
     Eigen::MatrixXd eta_cmd(2, 1);
     eta_cmd << imp_cmd_->theta, imp_cmd_->beta;
@@ -125,39 +125,39 @@ Eigen::MatrixXd admittance_control(const corgi_msgs::ImpedanceCmd* imp_cmd_, con
 
 int main(int argc, char **argv) {
 
-    ROS_INFO("Admittance Control Starts\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiForceControl"), "Admittance Control Starts\n");
 
-    ros::init(argc, argv, "admittance_control");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Subscriber motor_state_sub = nh.subscribe<corgi_msgs::MotorStateStamped>("motor/state", 1000, motor_state_cb);
-    ros::Subscriber force_state_sub = nh.subscribe<corgi_msgs::ForceStateStamped>("force/state", 1000, force_state_cb);
-    ros::Subscriber imp_cmd_sub = nh.subscribe<corgi_msgs::ImpedanceCmdStamped>("impedance/command", 1000, imp_cmd_cb);
-    ros::Publisher motor_cmd_pub = nh.advertise<corgi_msgs::MotorCmdStamped>("motor/command", 1000);
-    ros::Rate rate(1000);
+    auto nh = rclcpp::Node::make_shared("admittance_control");
+    auto motor_state_sub = nh.subscribe<corgi_msgs::msg::MotorStateStamped>("motor/state", 1000, motor_state_cb);
+    auto force_state_sub = nh.subscribe<corgi_msgs::msg::ForceStateStamped>("force/state", 1000, force_state_cb);
+    auto imp_cmd_sub = nh.subscribe<corgi_msgs::msg::ImpedanceCmdStamped>("impedance/command", 1000, imp_cmd_cb);
+    auto motor_cmd_pub = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1000);
+    rclcpp::Rate rate(1000);
 
-    std::vector<corgi_msgs::MotorState*> motor_state_modules = {
+    std::vector<corgi_msgs::msg::MotorState*> motor_state_modules = {
         &motor_state.module_a,
         &motor_state.module_b,
         &motor_state.module_c,
         &motor_state.module_d
     };
 
-    std::vector<corgi_msgs::ForceState*> force_state_modules = {
+    std::vector<corgi_msgs::msg::ForceState*> force_state_modules = {
         &force_state.module_a,
         &force_state.module_b,
         &force_state.module_c,
         &force_state.module_d
     };
 
-    std::vector<corgi_msgs::ImpedanceCmd*> imp_cmd_modules = {
+    std::vector<corgi_msgs::msg::ImpedanceCmd*> imp_cmd_modules = {
         &imp_cmd.module_a,
         &imp_cmd.module_b,
         &imp_cmd.module_c,
         &imp_cmd.module_d
     };
 
-    std::vector<corgi_msgs::MotorCmd*> motor_cmd_modules = {
+    std::vector<corgi_msgs::msg::MotorCmd*> motor_cmd_modules = {
         &motor_cmd.module_a,
         &motor_cmd.module_b,
         &motor_cmd.module_c,
@@ -181,8 +181,8 @@ int main(int argc, char **argv) {
     Eigen::MatrixXd eta_cmd = Eigen::MatrixXd::Zero(2, 1);
 
     int loop_count = 0;
-    while (ros::ok()) {
-        ros::spinOnce();
+    while (rclcpp::ok()) {
+        rclcpp::spin_some(node);
 
         for (int i=0; i<1; i++){
             eta_cmd = admittance_control(imp_cmd_modules[i], motor_state_modules[i], force_state_modules[i],
@@ -200,7 +200,7 @@ int main(int argc, char **argv) {
         std::cout << "= = = = =" << std::endl << std::endl;
 
         motor_cmd.header.seq = loop_count;
-        motor_cmd.header.stamp = ros::Time::now();
+        motor_cmd.header.stamp = rclcpp::Time::now();
         
         motor_cmd_pub.publish(motor_cmd);
 

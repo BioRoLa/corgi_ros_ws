@@ -1,13 +1,13 @@
-// #include "ros/ros.h"
-// #include "sensor_msgs/Imu.h"
-// #include "corgi_msgs/imu.h" // This is the service file
-// #include "corgi_msgs/Headers.h" // This is the header file
+// #include "rclcpp/rclcpp.hpp"
+// #include <sensor_msgs/msg/imu.hpp>
+// #include <corgi_msgs/srv/imu.hpp> // This is the service file
+// #include <corgi_msgs/msg/headers.hpp> // This is the header file
 // #include <fstream>
 // #include <mutex>
 
 // std::mutex mutex_;
-// sensor_msgs::Imu imu_info;
-// void imu_info_cb(sensor_msgs::Imu msg)
+// sensor_msgs::msg::Imu imu_info;
+// void imu_info_cb(sensor_msgs::msg::Imu msg)
 // {
 //     mutex_.lock();
 //     imu_info = msg;
@@ -15,10 +15,11 @@
 // }
 
 // int main(int argc, char **argv) {
-//     ros::init(argc, argv, "imu_node_listener");
-//     ros::NodeHandle nh;
-//     ros::Rate rate(1000);
-//     ros::Subscriber sub = nh.subscribe("imu", 1000, imu_info_cb);
+//     rclcpp::init(argc, argv);
+     auto node = rclcpp::Node::make_shared("imu_node_listener");
+//     rclcpp::Node nh;
+//     rclcpp::Rate rate(1000);
+//     auto sub = nh.subscribe("imu", 1000, imu_info_cb);
 //     std::ofstream file("imu.csv");
 //     file << "seq" << "," <<"t.sec" << "," << "t.usec" << "," << 
 //             "a.x" << "," << "a.y" << "," << "a.z" << "," << 
@@ -26,7 +27,7 @@
 //             "q.x" << "," << "q.y" << "," << "q.z" << "," << "q.w" << 
 //             "\n";
 //     while(ros::ok) { 
-//         ros::spinOnce();
+//         rclcpp::spin_some(node);
 //         mutex_.lock();
 //         // std::cout << imu_info.orientation().x() << "\t" << imu_info.orientation().y() << "\t" << imu_info.orientation().z() << "\t" << imu_info.orientation().w() << "\n";
 //         // std::cout << imu_info.acceleration().x() << "\t" << imu_info.acceleration().y() << "\t" << imu_info.acceleration().z() << "\n";
@@ -49,11 +50,11 @@
 //     file.close();
 // }
 
-#include "ros/ros.h"
-#include "sensor_msgs/Imu.h"
-#include "corgi_msgs/imu.h" // This is the service file
-#include "corgi_msgs/Headers.h" // This is the header file
-#include "corgi_msgs/TriggerStamped.h"
+#include "rclcpp/rclcpp.hpp"
+#include <sensor_msgs/msg/imu.hpp>
+#include <corgi_msgs/srv/imu.hpp> // This is the service file
+#include <corgi_msgs/msg/headers.hpp> // This is the header file
+#include <corgi_msgs/msg/trigger_stamped.hpp>
 #include <fstream>
 #include <mutex>
 #include <sys/stat.h>
@@ -62,7 +63,7 @@ bool trigger = false;
 
 
 std::mutex mutex_;
-sensor_msgs::Imu imu_info;
+sensor_msgs::msg::Imu imu_info;
 
 std::ofstream output_file;
 std::string output_file_name = "";
@@ -73,7 +74,7 @@ bool file_exists(const std::string &filename) {
     return (stat(filename.c_str(), &buffer) == 0);
 }
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg){
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
     trigger = msg.enable;
     
     output_file_name = msg.output_filename;
@@ -101,20 +102,20 @@ void trigger_cb(const corgi_msgs::TriggerStamped msg){
             "w.x" << "," << "w.y" << "," << "w.z" << "," << 
             "q.x" << "," << "q.y" << "," << "q.z" << "," << "q.w" << 
             "\n";
-            ROS_INFO("Recording imu data to %s\n", output_file_name.c_str());
+            RCLCPP_INFO(rclcpp::get_logger("CorgiImu"), "Recording imu data to %s\n", output_file_name.c_str());
         }
     }
     else {
         if (output_file.is_open()) {
             output_file.close();
-            ROS_INFO("Stopped recording data\n");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiImu"), "Stopped recording data\n");
         }
     }
 }
 
 void write_data() {
     if (!output_file.is_open()){
-        if (output_file_name != "") ROS_INFO("Output file is not opened\n");
+        if (output_file_name != "") RCLCPP_INFO(rclcpp::get_logger("CorgiImu"), "Output file is not opened\n");
         return;
     }
     mutex_.lock();
@@ -139,7 +140,7 @@ void write_data() {
 
 }
 
-void imu_info_cb(sensor_msgs::Imu msg)
+void imu_info_cb(sensor_msgs::msg::Imu msg)
 {
     mutex_.lock();
     imu_info = msg;
@@ -147,17 +148,17 @@ void imu_info_cb(sensor_msgs::Imu msg)
 }
 
 int main(int argc, char **argv) {
-    ROS_INFO("IMU Listener Starts\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiImu"), "IMU Listener Starts\n");
 
-    ros::init(argc, argv, "imu_node_listener");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1000, trigger_cb);
-    ros::Rate rate(1000);
-    ros::Subscriber sub = nh.subscribe("imu", 1000, imu_info_cb);
+    auto nh = rclcpp::Node::make_shared("imu_node_listener");
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1000, trigger_cb);
+    rclcpp::Rate rate(1000);
+    auto sub = nh.subscribe("imu", 1000, imu_info_cb);
 
-    while(ros::ok()) { 
-        ros::spinOnce();
+    while(rclcpp::ok()) { 
+        rclcpp::spin_some(node);
 
         if (trigger) {
             write_data();

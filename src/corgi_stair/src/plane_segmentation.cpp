@@ -1,5 +1,5 @@
-#include <ros/ros.h>
-#include <sensor_msgs/PointCloud2.h>
+#include "rclcpp/rclcpp.hpp"
+#include <sensor_msgs/msg/point_cloud2.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
@@ -10,7 +10,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/filters/passthrough.h>
-#include <visualization_msgs/MarkerArray.h>
+#include <visualization_msgs/msg/marker_array.hpp>
 #include <pcl/search/kdtree.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/features/normal_3d.h>
@@ -50,10 +50,10 @@ PlaneSegmentation::PlaneSegmentation() :
 
 void PlaneSegmentation::init_tf() {
     tf_listener_ = new tf2_ros::TransformListener(tf_buffer_);
-    pub = nh.advertise<sensor_msgs::PointCloud2>("plane_segmentation", 1);
-    normal_pub = nh.advertise<visualization_msgs::MarkerArray>("visualization_normals", 1);
-    normal_pub2 = nh.advertise<sensor_msgs::PointCloud2>("normal_points", 1);
-    plane_pub = nh.advertise<visualization_msgs::MarkerArray>("visualization_plane", 1);
+    pub = nh.advertise<sensor_msgs::msg::PointCloud2>("plane_segmentation", 1);
+    normal_pub = nh.advertise<visualization_msgs::msg::MarkerArray>("visualization_normals", 1);
+    normal_pub2 = nh.advertise<sensor_msgs::msg::PointCloud2>("normal_points", 1);
+    plane_pub = nh.advertise<visualization_msgs::msg::MarkerArray>("visualization_plane", 1);
 }//end init_tf
 
 
@@ -93,14 +93,14 @@ PlaneDistances PlaneSegmentation::segment_planes(pcl::PointCloud<PointT>::Ptr cl
     
     // Eigen::Vector3d base_link_pos;
     // try {
-    //     geometry_msgs::TransformStamped transformStamped = 
-    //         tf_buffer_.lookupTransform("map", "base_link", ros::Time(0), ros::Duration(1.0));
+    //     geometry_msgs::msg::TransformStamped transformStamped = 
+    //         tf_buffer_.lookupTransform("map", "base_link", rclcpp::Time(0), rclcpp::Duration(1.0));
         
     //     base_link_pos.x() = transformStamped.transform.translation.x;
     //     base_link_pos.y() = transformStamped.transform.translation.y;
     //     base_link_pos.z() = transformStamped.transform.translation.z;
     // } catch (tf2::TransformException &ex) {
-    //     ROS_WARN("TF error: %s", ex.what());
+    //     RCLCPP_WARN(rclcpp::get_logger("CorgiStair"), "TF error: %s", ex.what());
     // }
     // double v_d = base_link_pos.dot(centroid_z);
     // double h_d = base_link_pos.dot(centroid_x);
@@ -432,7 +432,7 @@ void PlaneSegmentation::visualize_planes() {
     }
 
     /* Publish the result */
-    sensor_msgs::PointCloud2 output;
+    sensor_msgs::msg::PointCloud2 output;
     pcl::toROSMsg(*colored_cloud, output);
     output.header.frame_id = "map";
     pub.publish(output);
@@ -442,11 +442,11 @@ void PlaneSegmentation::visualize_planes() {
 
 void PlaneSegmentation::visualize_normal() {
     // 可視化 Marker
-    visualization_msgs::MarkerArray marker_array;
-    visualization_msgs::Marker marker_template;
+    visualization_msgs::msg::MarkerArray marker_array;
+    visualization_msgs::msg::Marker marker_template;
     marker_template.header.frame_id = "map";
-    marker_template.type = visualization_msgs::Marker::ARROW;
-    marker_template.action = visualization_msgs::Marker::ADD;
+    marker_template.type = visualization_msgs::msg::Marker::ARROW;
+    marker_template.action = visualization_msgs::msg::Marker::ADD;
     marker_template.scale.x = 0.005;
     marker_template.scale.y = 0.010;
     marker_template.scale.z = 0.010;
@@ -458,7 +458,7 @@ void PlaneSegmentation::visualize_normal() {
     marker_template.pose.orientation.y = 0.0;
     marker_template.pose.orientation.z = 0.0;
     marker_template.pose.orientation.w = 1.0;  // 這是必要的！不能為 0
-    // marker_template.lifetime = ros::Duration(0.1);
+    // marker_template.lifetime = rclcpp::Duration(0.1);
 
     // 空間分格子平均
     float grid_size = 0.05;
@@ -485,10 +485,10 @@ void PlaneSegmentation::visualize_normal() {
     for (const auto& kv : grid_map) {
         const auto& pt = kv.second;
 
-        visualization_msgs::Marker arrow = marker_template;
+        visualization_msgs::msg::Marker arrow = marker_template;
         arrow.id = id++;
 
-        geometry_msgs::Point start, end;
+        geometry_msgs::msg::Point start, end;
         start.x = pt.x;
         start.y = pt.y;
         start.z = pt.z;
@@ -507,9 +507,9 @@ void PlaneSegmentation::visualize_normal() {
     marker_template.scale.z = 0.050;
     // 水平面法向量：centroid_z
     if (h_point_idx.size() > 0) {
-        visualization_msgs::Marker arrow = marker_template;
+        visualization_msgs::msg::Marker arrow = marker_template;
         arrow.id = id++;
-        geometry_msgs::Point start, end;
+        geometry_msgs::msg::Point start, end;
         start.x = 0.0;
         start.y = 0.0;
         start.z = 0.0;
@@ -528,9 +528,9 @@ void PlaneSegmentation::visualize_normal() {
     }//end if
     // 垂直面法向量：centroid_x
     if (v_point_idx.size() > 0) {
-        visualization_msgs::Marker arrow = marker_template;
+        visualization_msgs::msg::Marker arrow = marker_template;
         arrow.id = id++;
-        geometry_msgs::Point start, end;
+        geometry_msgs::msg::Point start, end;
         start.x = 0.0;
         start.y = 0.0;
         start.z = 0.0;
@@ -549,8 +549,8 @@ void PlaneSegmentation::visualize_normal() {
     }//end if
 
     // 刪除多餘的舊 marker
-    visualization_msgs::Marker delete_marker;
-    delete_marker.action = visualization_msgs::Marker::DELETE;
+    visualization_msgs::msg::Marker delete_marker;
+    delete_marker.action = visualization_msgs::msg::Marker::DELETE;
     for (int i = id; i < last_marker_count_; ++i) {
         delete_marker.id = i;
         marker_array.markers.push_back(delete_marker);
@@ -562,14 +562,14 @@ void PlaneSegmentation::visualize_normal() {
 
 
 void PlaneSegmentation::visualize_CubePlanes(const std::vector<double>& h_plane_distances, const std::vector<double>& v_plane_distances) {
-    visualization_msgs::MarkerArray marker_array;
+    visualization_msgs::msg::MarkerArray marker_array;
     Eigen::Vector3d n_z = centroid_z.normalized();
     Eigen::Vector3d n_x = -centroid_x.normalized();
     Eigen::Vector3d z_axis(0, 0, 1);
     Eigen::Quaterniond q_z = Eigen::Quaterniond::FromTwoVectors(z_axis, n_z);
     Eigen::Quaterniond q_x = Eigen::Quaterniond::FromTwoVectors(z_axis, n_x);
     // 顏色設定
-    std_msgs::ColorRGBA blue, red;
+    std_msgs::msg::ColorRGBA blue, red;
     blue.b = 1.0; blue.a = 0.3;
     red.r = 1.0; red.a = 0.3;
 
@@ -579,12 +579,12 @@ void PlaneSegmentation::visualize_CubePlanes(const std::vector<double>& h_plane_
         double d = h_plane_distances[i];
         Eigen::Vector3d center = d * n_z;
 
-        visualization_msgs::Marker marker;
+        visualization_msgs::msg::Marker marker;
         marker.header.frame_id = "map";
-        marker.header.stamp = ros::Time::now();
+        marker.header.stamp = rclcpp::Time::now();
         marker.id = start_id + i;
-        marker.type = visualization_msgs::Marker::CUBE;
-        marker.action = visualization_msgs::Marker::ADD;
+        marker.type = visualization_msgs::msg::Marker::CUBE;
+        marker.action = visualization_msgs::msg::Marker::ADD;
 
         marker.pose.position.x = center.x();
         marker.pose.position.y = center.y();
@@ -603,11 +603,11 @@ void PlaneSegmentation::visualize_CubePlanes(const std::vector<double>& h_plane_
         marker_array.markers.push_back(marker);
     }
     for (int i = h_plane_distances.size(); i < 10; ++i) {
-        visualization_msgs::Marker marker;
+        visualization_msgs::msg::Marker marker;
         marker.header.frame_id = "map";
-        marker.header.stamp = ros::Time::now();
+        marker.header.stamp = rclcpp::Time::now();
         marker.id = start_id + i;
-        marker.action = visualization_msgs::Marker::DELETE;
+        marker.action = visualization_msgs::msg::Marker::DELETE;
         marker_array.markers.push_back(marker);
     }
 
@@ -616,12 +616,12 @@ void PlaneSegmentation::visualize_CubePlanes(const std::vector<double>& h_plane_
         double d = v_plane_distances[i];
         Eigen::Vector3d center = d * n_x;
 
-        visualization_msgs::Marker marker;
+        visualization_msgs::msg::Marker marker;
         marker.header.frame_id = "map";
-        marker.header.stamp = ros::Time::now();
+        marker.header.stamp = rclcpp::Time::now();
         marker.id = start_id + i;
-        marker.type = visualization_msgs::Marker::CUBE;
-        marker.action = visualization_msgs::Marker::ADD;
+        marker.type = visualization_msgs::msg::Marker::CUBE;
+        marker.action = visualization_msgs::msg::Marker::ADD;
 
         marker.pose.position.x = center.x();
         marker.pose.position.y = center.y();
@@ -640,11 +640,11 @@ void PlaneSegmentation::visualize_CubePlanes(const std::vector<double>& h_plane_
         marker_array.markers.push_back(marker);
     }
     for (int i = v_plane_distances.size(); i < 10; ++i) {
-        visualization_msgs::Marker marker;
+        visualization_msgs::msg::Marker marker;
         marker.header.frame_id = "map";
-        marker.header.stamp = ros::Time::now();
+        marker.header.stamp = rclcpp::Time::now();
         marker.id = start_id + i;
-        marker.action = visualization_msgs::Marker::DELETE;
+        marker.action = visualization_msgs::msg::Marker::DELETE;
         marker_array.markers.push_back(marker);
     }
 
@@ -681,9 +681,9 @@ void PlaneSegmentation::visualize_normal_in_space() {
     }
 
     cloud_msg->width = cloud_msg->points.size();
-    pcl_conversions::toPCL(ros::Time::now(), cloud_msg->header.stamp);
+    pcl_conversions::toPCL(rclcpp::Time::now(), cloud_msg->header.stamp);
 
-    sensor_msgs::PointCloud2 output;
+    sensor_msgs::msg::PointCloud2 output;
     pcl::toROSMsg(*cloud_msg, output);
     normal_pub2.publish(output);
 }

@@ -17,12 +17,12 @@
 #include <algorithm>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
-#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/msg/marker.hpp>
 
-#include "ros/ros.h"
-#include "corgi_msgs/MotorCmdStamped.h"
-#include "corgi_msgs/MotorStateStamped.h"
-#include "corgi_msgs/TriggerStamped.h"
+#include "rclcpp/rclcpp.hpp"
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
+#include <corgi_msgs/msg/motor_state_stamped.hpp>
+#include <corgi_msgs/msg/trigger_stamped.hpp>
 #include "leg_model.hpp"
 
 enum class Gait {
@@ -33,7 +33,7 @@ enum class Gait {
 };
 class GaitSelector {
     public:
-        GaitSelector(   ros::NodeHandle& nh,
+        GaitSelector(   rclcpp::Node& nh,
                         bool sim=true,
                         double CoM_bias=0.0,
                         int pub_rate=1000,
@@ -49,23 +49,23 @@ class GaitSelector {
         ros::Publisher motor_cmd_pub_; 
         ros::Publisher marker_pub_;
         ros::Subscriber trigger_sub_;
-        ros::Rate* rate_ptr;
+        rclcpp::Rate* rate_ptr;
         std::random_device rd;                     
         std::mt19937 rng;                          
         std::uniform_int_distribution<int> dist;
         /*    State or cmd messages      */ 
-        corgi_msgs::MotorCmdStamped motor_cmd;
-        corgi_msgs::TriggerStamped trigger_msg;
-        static corgi_msgs::MotorStateStamped motor_state;
-        std::vector<corgi_msgs::MotorCmd*> motor_cmd_modules = {
+        corgi_msgs::msg::MotorCmdStamped motor_cmd;
+        corgi_msgs::msg::TriggerStamped trigger_msg;
+        static corgi_msgs::msg::MotorStateStamped motor_state;
+        std::vector<corgi_msgs::msg::MotorCmd*> motor_cmd_modules = {
             &motor_cmd.module_a,
             &motor_cmd.module_b,
             &motor_cmd.module_c,
             &motor_cmd.module_d
         };
-        static std::vector<corgi_msgs::MotorState*> motor_state_modules;
-        void motor_state_cb(const corgi_msgs::MotorStateStamped state);
-        void trigger_cb(const corgi_msgs::TriggerStamped msg) ;
+        static std::vector<corgi_msgs::msg::MotorState*> motor_state_modules;
+        void motor_state_cb(const corgi_msgs::msg::MotorStateStamped state);
+        void trigger_cb(const corgi_msgs::msg::TriggerStamped msg) ;
         /*     Cooperate variables      */ 
         LegModel leg_model;
         int pub_rate;

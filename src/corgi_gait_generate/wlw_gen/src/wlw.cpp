@@ -11,17 +11,17 @@ double rad2deg(double radians) {
 
 
 int main(int argc, char **argv) { 
-    ros::init(argc, argv, "wlw_pub");
-    ros::NodeHandle nh;
-    ros::Publisher motor_pub = nh.advertise<corgi_msgs::MotorCmdStamped>("motor/command", 1);
-    corgi_msgs::MotorCmdStamped motor_cmd;
-    std::array<corgi_msgs::MotorCmd*, 4> motor_cmd_modules = {
+    rclcpp::init(argc, argv);
+    auto nh = rclcpp::Node::make_shared("wlw_pub");
+    auto motor_pub = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1);
+    corgi_msgs::msg::MotorCmdStamped motor_cmd;
+    std::array<corgi_msgs::msg::MotorCmd*, 4> motor_cmd_modules = {
         &motor_cmd.module_a,
         &motor_cmd.module_b,
         &motor_cmd.module_c,
         &motor_cmd.module_d
     };
-    ros::Rate rate(1000);
+    rclcpp::Rate rate(1000);
 
     bool sim = true;
     LegModel leg_model(sim);

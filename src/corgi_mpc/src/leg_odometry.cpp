@@ -2,15 +2,15 @@
 #include "force_estimation.hpp"
 
 bool trigger = false;
-corgi_msgs::ContactStateStamped contact_state;
+corgi_msgs::msg::ContactStateStamped contact_state;
 std::vector<std::array<double, 2>> eta_modules = {{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
 std::vector<std::array<double, 2>> eta_prev_modules = {{0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg){
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
     trigger = msg.enable;
 }
 
-void motor_state_cb(const corgi_msgs::MotorStateStamped msg){
+void motor_state_cb(const corgi_msgs::msg::MotorStateStamped msg){
     for (int i=0; i<4; i++){
         eta_prev_modules[i][0] = eta_modules[i][0];
         eta_prev_modules[i][1] = eta_modules[i][1];
@@ -26,7 +26,7 @@ void motor_state_cb(const corgi_msgs::MotorStateStamped msg){
     eta_modules[3][1] = msg.module_d.beta;
 }
 
-void contact_state_cb(const corgi_msgs::ContactStateStamped msg){
+void contact_state_cb(const corgi_msgs::msg::ContactStateStamped msg){
     contact_state = msg;
 }
 
@@ -98,22 +98,22 @@ std::array<double, 2> objective(const std::array<double, 2>& guessed_q, const st
 
 
 int main(int argc, char **argv) {
-    ROS_INFO("Corgi Leg Odom Starts");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiMpc"), "Corgi Leg Odom Starts");
 
-    ros::init(argc, argv, "corgi_leg_odom");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Subscriber motor_state_sub = nh.subscribe<corgi_msgs::MotorStateStamped>("motor/state", 1, motor_state_cb);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1, trigger_cb);
-    ros::Subscriber contact_sub = nh.subscribe<corgi_msgs::ContactStateStamped>("odometry/contact", 1, contact_state_cb);
-    ros::Publisher odom_pos_pub = nh.advertise<geometry_msgs::Vector3>("odometry/position", 1);
-    ros::Publisher odom_vel_pub = nh.advertise<geometry_msgs::Vector3>("odometry/velocity", 1);
+    auto nh = rclcpp::Node::make_shared("corgi_leg_odom");
+    auto motor_state_sub = nh.subscribe<corgi_msgs::msg::MotorStateStamped>("motor/state", 1, motor_state_cb);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1, trigger_cb);
+    auto contact_sub = nh.subscribe<corgi_msgs::msg::ContactStateStamped>("odometry/contact", 1, contact_state_cb);
+    auto odom_pos_pub = nh.advertise<geometry_msgs::msg::Vector3>("odometry/position", 1);
+    auto odom_vel_pub = nh.advertise<geometry_msgs::msg::Vector3>("odometry/velocity", 1);
     
     int freq = 1000;
-    ros::Rate rate(freq);
+    rclcpp::Rate rate(freq);
 
-    geometry_msgs::Vector3 odom_pos;
-    geometry_msgs::Vector3 odom_vel;
+    geometry_msgs::msg::Vector3 odom_pos;
+    geometry_msgs::msg::Vector3 odom_vel;
 
     odom_pos.x = 0.0;
     odom_pos.y = 0.0;
@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
     odom_vel.y = 0.0;
     odom_vel.z = 0.0;
 
-    std::vector<corgi_msgs::ContactState*> contact_state_modules = {
+    std::vector<corgi_msgs::msg::ContactState*> contact_state_modules = {
         &contact_state.module_a,
         &contact_state.module_b,
         &contact_state.module_c,
@@ -134,11 +134,11 @@ int main(int argc, char **argv) {
     std::array<double,2> ds_avg;
     int contact_count;
 
-    while (ros::ok()) {
-        ros::spinOnce();
+    while (rclcpp::ok()) {
+        rclcpp::spin_some(node);
         if (trigger){
-            while (ros::ok()) {
-                ros::spinOnce();
+            while (rclcpp::ok()) {
+                rclcpp::spin_some(node);
 
                 ds_avg[0] = 0.0;
                 ds_avg[1] = 0.0;

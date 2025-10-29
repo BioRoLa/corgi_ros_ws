@@ -1,7 +1,7 @@
-#include <ros/ros.h>
-#include <sensor_msgs/Joy.h>
-#include <std_msgs/String.h>
-#include <corgi_msgs/SteeringStateStamped.h>
+#include "rclcpp/rclcpp.hpp"
+#include <sensor_msgs/msg/joy.hpp>
+#include <std_msgs/msg/string.hpp>
+#include <corgi_msgs/msg/steering_state_stamped.hpp>
 
 /**
  * A node that publishes SteeringStateStamped based on joystick button presses.
@@ -15,14 +15,14 @@ public:
   StatePublisher();
 
 private:
-  void joyCallback(const sensor_msgs::Joy::ConstPtr& joy);
+  void joyCallback(const sensor_msgs::msg::Joy::ConstSharedPtr& joy);
 
-  ros::NodeHandle nh_;
+  rclcpp::Node nh_;
   ros::Publisher steering_state_pub_;
   ros::Publisher debug_pub_; 
   ros::Subscriber joy_sub_;
 
-  corgi_msgs::SteeringStateStamped current_steering_state_;
+  corgi_msgs::msg::SteeringStateStamped current_steering_state_;
 
   // For indexing the B/Y/RB buttons
   int button_b_;
@@ -33,35 +33,35 @@ private:
 StatePublisher::StatePublisher()
 {
   // Load parameters or use defaults
-  ros::NodeHandle pnh("~");
+  rclcpp::Node pnh("~");
   pnh.param("button_b",  button_b_,  1);
   pnh.param("button_rb", button_rb_, 5);
 
   // Advertise SteeringState and debug_info
-  steering_state_pub_ = nh_.advertise<corgi_msgs::SteeringStateStamped>("/steer/state", 1);
-  debug_pub_ = nh_.advertise<std_msgs::String>("debug_info", 10);
+  steering_state_pub_ = nh_.advertise<corgi_msgs::msg::SteeringStateStamped>("/steer/state", 1);
+  debug_pub_ = nh_.advertise<std_msgs::msg::String>("debug_info", 10);
 
   // Subscribe to joystick
   joy_sub_ = nh_.subscribe("joy", 1, &StatePublisher::joyCallback, this);
 
   // Initialize the steering state
-  current_steering_state_.header.stamp = ros::Time::now();
+  current_steering_state_.header.stamp = rclcpp::Time::now();
   current_steering_state_.current_angle = 0;
   current_steering_state_.current_state = false; // default
   current_steering_state_.cmd_finish    = 0;
 
   // Publish an initial debug message
-  std_msgs::String dbg;
+  std_msgs::msg::String dbg;
   dbg.data = "[StatePublisher] Initialized. Listening for B/RB presses.";
   debug_pub_.publish(dbg);
 }
 
-void StatePublisher::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
+void StatePublisher::joyCallback(const sensor_msgs::msg::Joy::ConstSharedPtr& joy)
 {
   // Check we have enough buttons
   if (joy->buttons.size() <= std::max({button_b_, button_rb_}))
   {
-    std_msgs::String dbg;
+    std_msgs::msg::String dbg;
     dbg.data = "[StatePublisher] Not enough joystick buttons for B/RB!";
     debug_pub_.publish(dbg);
     return;
@@ -71,10 +71,10 @@ void StatePublisher::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
   if (joy->buttons[button_b_] == 1)
   {
     current_steering_state_.current_state = true;
-    current_steering_state_.header.stamp = ros::Time::now();
+    current_steering_state_.header.stamp = rclcpp::Time::now();
     steering_state_pub_.publish(current_steering_state_);
 
-    std_msgs::String dbg;
+    std_msgs::msg::String dbg;
     dbg.data = "[StatePublisher] B pressed => set current_state = true";
     debug_pub_.publish(dbg);
   }
@@ -82,7 +82,7 @@ void StatePublisher::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
   // Press RB => shutdown
   if (joy->buttons[button_rb_] == 1)
   {
-    std_msgs::String dbg;
+    std_msgs::msg::String dbg;
     dbg.data = "[StatePublisher] RB pressed => shutting down!";
     debug_pub_.publish(dbg);
     ros::shutdown();
@@ -91,8 +91,9 @@ void StatePublisher::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "state_publisher");
+  rclcpp::init(argc, argv);
+  auto node = rclcpp::Node::make_shared("state_publisher");
   StatePublisher node;
-  ros::spin();
+  rclcpp::spin(node);
   return 0;
 }

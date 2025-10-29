@@ -70,7 +70,7 @@ void RgbdSensorsSyncNodelet::onInit()
 
   readParameters();
 
-  mPubRaw = mNhP.advertise<zed_interfaces::RGBDSensors>("rgbd_sens", 1);
+  mPubRaw = mNhP.advertise<zed_interfaces::msg::RGBDSensors>("rgbd_sens", 1);
   NODELET_INFO_STREAM("Advertised on topic " << mPubRaw.getTopic());
 
   if (mUseApproxSync)
@@ -157,11 +157,11 @@ void RgbdSensorsSyncNodelet::onInit()
   }
 
   // Create remappings
-  ros::NodeHandle rgb_nh(mNh, mZedNodeletName + "/rgb");
-  ros::NodeHandle depth_nh(mNh, mZedNodeletName + "/depth");
-  ros::NodeHandle rgb_pnh(mNhP, mZedNodeletName + "/rgb");
-  ros::NodeHandle depth_pnh(mNhP, mZedNodeletName + "/depth");
-  ros::NodeHandle imu_nh(mNh, mZedNodeletName + "/imu");
+  rclcpp::Node rgb_nh(mNh, mZedNodeletName + "/rgb");
+  rclcpp::Node depth_nh(mNh, mZedNodeletName + "/depth");
+  rclcpp::Node rgb_pnh(mNhP, mZedNodeletName + "/rgb");
+  rclcpp::Node depth_pnh(mNhP, mZedNodeletName + "/depth");
+  rclcpp::Node imu_nh(mNh, mZedNodeletName + "/imu");
 
   image_transport::ImageTransport rgb_it(rgb_nh);
   image_transport::ImageTransport depth_it(depth_nh);
@@ -209,10 +209,10 @@ void RgbdSensorsSyncNodelet::readParameters()
   NODELET_INFO(" * sub_mag -> %s", mUseMag ? "true" : "false");
 }
 
-void RgbdSensorsSyncNodelet::callbackRGBD(const sensor_msgs::ImageConstPtr& rgb,
-                                          const sensor_msgs::ImageConstPtr& depth,
-                                          const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
-                                          const sensor_msgs::CameraInfoConstPtr& depthCameraInfo)
+void RgbdSensorsSyncNodelet::callbackRGBD(const sensor_msgs::msg::Image::ConstSharedPtr& rgb,
+                                          const sensor_msgs::msg::Image::ConstSharedPtr& depth,
+                                          const sensor_msgs::msg::CameraInfo::ConstSharedPtr& rgbCameraInfo,
+                                          const sensor_msgs::msg::CameraInfo::ConstSharedPtr& depthCameraInfo)
 {
   // ----> Frequency calculation
   static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
@@ -237,7 +237,7 @@ void RgbdSensorsSyncNodelet::callbackRGBD(const sensor_msgs::ImageConstPtr& rgb,
     return;
   }
 
-  zed_interfaces::RGBDSensorsPtr outSyncMsg = boost::make_shared<zed_interfaces::RGBDSensors>();
+  zed_interfaces::msg::RGBDSensorsPtr outSyncMsg = boost::make_shared<zed_interfaces::msg::RGBDSensors>();
 
   outSyncMsg->header.frame_id = rgb->header.frame_id;
   outSyncMsg->header.stamp = rgb->header.stamp;
@@ -262,11 +262,11 @@ void RgbdSensorsSyncNodelet::callbackRGBD(const sensor_msgs::ImageConstPtr& rgb,
   }
 }
 
-void RgbdSensorsSyncNodelet::callbackRGBDIMU(const sensor_msgs::ImageConstPtr& rgb,
-                                             const sensor_msgs::ImageConstPtr& depth,
-                                             const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
-                                             const sensor_msgs::CameraInfoConstPtr& depthCameraInfo,
-                                             const sensor_msgs::ImuConstPtr& imu)
+void RgbdSensorsSyncNodelet::callbackRGBDIMU(const sensor_msgs::msg::Image::ConstSharedPtr& rgb,
+                                             const sensor_msgs::msg::Image::ConstSharedPtr& depth,
+                                             const sensor_msgs::msg::CameraInfo::ConstSharedPtr& rgbCameraInfo,
+                                             const sensor_msgs::msg::CameraInfo::ConstSharedPtr& depthCameraInfo,
+                                             const sensor_msgs::msg::Imu::ConstSharedPtr& imu)
 {
   // ----> Frequency calculation
   static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
@@ -296,7 +296,7 @@ void RgbdSensorsSyncNodelet::callbackRGBDIMU(const sensor_msgs::ImageConstPtr& r
     return;
   }
 
-  zed_interfaces::RGBDSensorsPtr outSyncMsg = boost::make_shared<zed_interfaces::RGBDSensors>();
+  zed_interfaces::msg::RGBDSensorsPtr outSyncMsg = boost::make_shared<zed_interfaces::msg::RGBDSensors>();
 
   outSyncMsg->header.frame_id = rgb->header.frame_id;
   outSyncMsg->header.stamp = rgb->header.stamp;
@@ -322,11 +322,11 @@ void RgbdSensorsSyncNodelet::callbackRGBDIMU(const sensor_msgs::ImageConstPtr& r
   }
 }
 
-void RgbdSensorsSyncNodelet::callbackRGBDMag(const sensor_msgs::ImageConstPtr& rgb,
-                                             const sensor_msgs::ImageConstPtr& depth,
-                                             const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
-                                             const sensor_msgs::CameraInfoConstPtr& depthCameraInfo,
-                                             const sensor_msgs::MagneticFieldConstPtr& mag)
+void RgbdSensorsSyncNodelet::callbackRGBDMag(const sensor_msgs::msg::Image::ConstSharedPtr& rgb,
+                                             const sensor_msgs::msg::Image::ConstSharedPtr& depth,
+                                             const sensor_msgs::msg::CameraInfo::ConstSharedPtr& rgbCameraInfo,
+                                             const sensor_msgs::msg::CameraInfo::ConstSharedPtr& depthCameraInfo,
+                                             const sensor_msgs::msg::MagneticField::ConstSharedPtr& mag)
 {
   // ----> Frequency calculation
   static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
@@ -356,7 +356,7 @@ void RgbdSensorsSyncNodelet::callbackRGBDMag(const sensor_msgs::ImageConstPtr& r
     return;
   }
 
-  zed_interfaces::RGBDSensorsPtr outSyncMsg = boost::make_shared<zed_interfaces::RGBDSensors>();
+  zed_interfaces::msg::RGBDSensorsPtr outSyncMsg = boost::make_shared<zed_interfaces::msg::RGBDSensors>();
 
   outSyncMsg->header.frame_id = rgb->header.frame_id;
   outSyncMsg->header.stamp = rgb->header.stamp;
@@ -382,12 +382,12 @@ void RgbdSensorsSyncNodelet::callbackRGBDMag(const sensor_msgs::ImageConstPtr& r
   }
 }
 
-void RgbdSensorsSyncNodelet::callbackFull(const sensor_msgs::ImageConstPtr& rgb,
-                                          const sensor_msgs::ImageConstPtr& depth,
-                                          const sensor_msgs::CameraInfoConstPtr& rgbCameraInfo,
-                                          const sensor_msgs::CameraInfoConstPtr& depthCameraInfo,
-                                          const sensor_msgs::ImuConstPtr& imu,
-                                          const sensor_msgs::MagneticFieldConstPtr& mag)
+void RgbdSensorsSyncNodelet::callbackFull(const sensor_msgs::msg::Image::ConstSharedPtr& rgb,
+                                          const sensor_msgs::msg::Image::ConstSharedPtr& depth,
+                                          const sensor_msgs::msg::CameraInfo::ConstSharedPtr& rgbCameraInfo,
+                                          const sensor_msgs::msg::CameraInfo::ConstSharedPtr& depthCameraInfo,
+                                          const sensor_msgs::msg::Imu::ConstSharedPtr& imu,
+                                          const sensor_msgs::msg::MagneticField::ConstSharedPtr& mag)
 {
   // ----> Frequency calculation
   static std::chrono::steady_clock::time_point last_time = std::chrono::steady_clock::now();
@@ -420,7 +420,7 @@ void RgbdSensorsSyncNodelet::callbackFull(const sensor_msgs::ImageConstPtr& rgb,
     return;
   }
 
-  zed_interfaces::RGBDSensorsPtr outSyncMsg = boost::make_shared<zed_interfaces::RGBDSensors>();
+  zed_interfaces::msg::RGBDSensorsPtr outSyncMsg = boost::make_shared<zed_interfaces::msg::RGBDSensors>();
 
   outSyncMsg->header.frame_id = rgb->header.frame_id;
   outSyncMsg->header.stamp = rgb->header.stamp;

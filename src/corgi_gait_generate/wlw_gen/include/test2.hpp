@@ -17,11 +17,11 @@
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
 
-#include "ros/ros.h"
-#include <corgi_msgs/MotorState.h>
-#include <corgi_msgs/MotorStateStamped.h>
-#include <corgi_msgs/MotorCmd.h>
-#include <corgi_msgs/MotorCmdStamped.h>
+#include "rclcpp/rclcpp.hpp"
+#include <corgi_msgs/msg/motor_state.hpp>
+#include <corgi_msgs/msg/motor_state_stamped.hpp>
+#include <corgi_msgs/msg/motor_cmd.hpp>
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
 
 #include "leg_model.hpp"
 #include "bezier.hpp"
@@ -30,7 +30,7 @@
 
 class WLWGait {
 public:
-    WLWGait(ros::NodeHandle& nh,
+    WLWGait(rclcpp::Node& nh,
             bool sim=true,
             double CoM_bias=0.0,
             int pub_rate=1000,
@@ -38,7 +38,7 @@ public:
             double BW=0.4,
             double BH=0.2);
     ~WLWGait();
-    void motorsStateCallback(const corgi_msgs::MotorStateStamped::ConstPtr& msg);
+    void motorsStateCallback(const corgi_msgs::msg::MotorStateStamped::ConstSharedPtr& msg);
     void setCmd(std::array<double, 2> send, int index, bool dir);
     void publish(int freq);
     std::array<double, 2> find_pose(double height, float shift, float steplength, double slope);
@@ -57,16 +57,16 @@ public:
 
     ros::Publisher motor_pub;
     ros::Subscriber motor_state_sub_;
-    ros::Rate* rate_ptr;
-    corgi_msgs::MotorStateStamped current_motor_state_;
-    std::vector<corgi_msgs::MotorState*> motor_state_modules = {
+    rclcpp::Rate* rate_ptr;
+    corgi_msgs::msg::MotorStateStamped current_motor_state_;
+    std::vector<corgi_msgs::msg::MotorState*> motor_state_modules = {
         &current_motor_state_.module_a,
         &current_motor_state_.module_b,
         &current_motor_state_.module_c,
         &current_motor_state_.module_d
     };
-    corgi_msgs::MotorCmdStamped motor_cmd;
-    std::array<corgi_msgs::MotorCmd*, 4> motor_cmd_modules = {
+    corgi_msgs::msg::MotorCmdStamped motor_cmd;
+    std::array<corgi_msgs::msg::MotorCmd*, 4> motor_cmd_modules = {
         &motor_cmd.module_a,
         &motor_cmd.module_b,
         &motor_cmd.module_c,

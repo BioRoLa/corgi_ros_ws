@@ -1,11 +1,11 @@
 #include <iostream>
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 
 #include "leg_model.hpp"
 #include "fitted_coefficient.hpp"
 
-#include "corgi_msgs/MotorCmdStamped.h"
-#include "corgi_msgs/TriggerStamped.h"
+#include <corgi_msgs/msg/motor_cmd_stamped.hpp>
+#include <corgi_msgs/msg/trigger_stamped.hpp>
 
 bool sim = true;
 bool trigger = false;
@@ -13,28 +13,28 @@ bool trigger = false;
 LegModel legmodel(sim);
 std::array<double, 2> eta;
 
-void trigger_cb(const corgi_msgs::TriggerStamped msg){
+void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
     trigger = msg.enable;
 }
 
 int main(int argc, char **argv) {
-    ros::init(argc, argv, "corgi_rt_control");
+    rclcpp::init(argc, argv);
 
-    ros::NodeHandle nh;
-    ros::Publisher motor_cmd_pub = nh.advertise<corgi_msgs::MotorCmdStamped>("motor/command", 1000);
-    ros::Subscriber trigger_sub = nh.subscribe<corgi_msgs::TriggerStamped>("trigger", 1000, trigger_cb);
-    ros::Rate rate(1000);
+    auto nh = rclcpp::Node::make_shared("corgi_rt_control");
+    auto motor_cmd_pub = nh.advertise<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1000);
+    auto trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1000, trigger_cb);
+    rclcpp::Rate rate(1000);
 
-    corgi_msgs::MotorCmdStamped motor_cmd;
+    corgi_msgs::msg::MotorCmdStamped motor_cmd;
 
-    std::vector<corgi_msgs::MotorCmd*> motor_cmd_modules = {
+    std::vector<corgi_msgs::msg::MotorCmd*> motor_cmd_modules = {
         &motor_cmd.module_a,
         &motor_cmd.module_b,
         &motor_cmd.module_c,
         &motor_cmd.module_d
     };
 
-    ROS_INFO("Leg Transform Starts\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiRtControl"), "Leg Transform Starts\n");
     
     for (auto& cmd : motor_cmd_modules) {
         cmd->theta = 17/180.0*M_PI;
@@ -74,16 +74,16 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
 
-    ROS_INFO("Leg Transform Finished\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiRtControl"), "Leg Transform Finished\n");
 
-    while (ros::ok()){
-        ros::spinOnce();
+    while (rclcpp::ok()){
+        rclcpp::spin_some(node);
 
         if (trigger){
-            ROS_INFO("Real Time Trajectory Starts\n");
+            RCLCPP_INFO(rclcpp::get_logger("CorgiRtControl"), "Real Time Trajectory Starts\n");
 
             int loop_count = 0;
-            while (ros::ok()) {
+            while (rclcpp::ok()) {
                 if (loop_count < 1000) {
                 }
                 else if (loop_count < 3000) {
@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    ROS_INFO("Real Time Trajectory Finished\n");
+    RCLCPP_INFO(rclcpp::get_logger("CorgiRtControl"), "Real Time Trajectory Finished\n");
 
     ros::shutdown();
     

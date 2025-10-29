@@ -7,7 +7,7 @@
 // class KeybordControl : public Wheeled, public Hybrid, public Legged, public Transform
 // {
 //     public: 
-//         KeybordControl(ros::NodeHandle& nh, GaitSelector& gs, Gait defaultGait): Wheeled(nh), Hybrid(nh), Legged(nh), Transform(), gaitSelector(gs)
+//         KeybordControl(rclcpp::Node& nh, GaitSelector& gs, Gait defaultGait): Wheeled(nh), Hybrid(nh), Legged(nh), Transform(), gaitSelector(gs)
 //         {
 //             gaitSelector.currentGait = defaultGait;
 //             gaitSelector.newGait     = defaultGait;
@@ -26,7 +26,7 @@
 //         }
 
 //         void keyboardInputThread() {
-//             while (ros::ok()) {
+//             while (rclcpp::ok()) {
 //                 std::string input_line;
 //                 std::cout << "Enter command: ";
 //                 std::getline(std::cin, input_line);
@@ -74,8 +74,8 @@
 //         Gait prevGait = Gait::WHEELED;
 
 //         void Keep() {
-//             ros::Rate rate(gaitSelector.pub_rate);
-//             while (ros::ok()) {
+//             rclcpp::Rate rate(gaitSelector.pub_rate);
+//             while (rclcpp::ok()) {
 //                 bool is_paused = paused.load();
 //                 Gait current = gaitSelector.currentGait;
     
@@ -256,8 +256,9 @@
 // };
 
 int main(int argc, char **argv){
-    ros::init(argc, argv, "corgi_gait_selector");
-    // ros::NodeHandle nh;
+    rclcpp::init(argc, argv);
+    auto node = rclcpp::Node::make_shared("corgi_gait_selector");
+    // rclcpp::Node nh;
 
     // //  Start an async spinner to run in parallel.
     // ros::AsyncSpinner spinner(1);
