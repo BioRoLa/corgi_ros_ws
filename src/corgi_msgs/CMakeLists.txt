@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 1 4)
 
 rosidl_generate_interfaces(
     ${PROJECT_NAME}
-        srv/imu.srv
+        srv/Imu.srv
         msg/FsmStateStamped.msg
         msg/PowerCmdStamped.msg
         msg/MotorStateStamped.msg
@@ -41,5 +41,5 @@ rosidl_generate_interfaces(
 include_directories(
   
 )
-ament_export_dependencies(message_generation std_msgs geometry_msgs sensor_msgs)
+ament_export_dependencies(rosidl_default_runtime std_msgs geometry_msgs sensor_msgs)
 ament_package()

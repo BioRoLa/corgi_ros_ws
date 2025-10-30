@@ -6,9 +6,6 @@ find_package(ament_cmake REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(#actionlib_msgs
-REQUIRED
-)
 find_package(shape_msgs REQUIRED)
 
 ## Generate symbols for IDE indexer
@@ -23,23 +20,23 @@ set(CMAKE_CXX_STANDARD 1 4)
 
 rosidl_generate_interfaces(
     ${PROJECT_NAME}
-        srv/reset_tracking.srv
-        srv/reset_roi.srv
-        srv/stop_3d_mapping.srv
-        srv/toggle_led.srv
-        srv/set_pose.srv
-        srv/start_svo_recording.srv
-        srv/save_3d_map.srv
-        srv/start_remote_stream.srv
-        srv/stop_svo_recording.srv
-        srv/stop_object_detection.srv
-        srv/stop_remote_stream.srv
-        srv/start_object_detection.srv
-        srv/reset_odometry.srv
-        srv/set_led_status.srv
-        srv/set_roi.srv
-        srv/start_3d_mapping.srv
-        srv/save_area_memory.srv
+        srv/ResetTracking.srv
+        srv/ResetRoi.srv
+        srv/Stop3dMapping.srv
+        srv/ToggleLed.srv
+        srv/SetPose.srv
+        srv/StartSvoRecording.srv
+        srv/Save3dMap.srv
+        srv/StartRemoteStream.srv
+        srv/StopSvoRecording.srv
+        srv/StopObjectDetection.srv
+        srv/StopRemoteStream.srv
+        srv/StartObjectDetection.srv
+        srv/ResetOdometry.srv
+        srv/SetLedStatus.srv
+        srv/SetRoi.srv
+        srv/Start3dMapping.srv
+        srv/SaveAreaMemory.srv
         msg/Keypoint3D.msg
         msg/Object.msg
         msg/PosTrackStatus.msg

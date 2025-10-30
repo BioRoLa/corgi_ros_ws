@@ -1,6 +1,8 @@
 build
 devel
+install
 logs
+log
 .*
 
 input_csv/*

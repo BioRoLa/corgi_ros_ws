@@ -3,8 +3,8 @@ float32 x
 float32 y
 float32 z
 # Orientation RPY [radians]
-float32 R
-float32 P
-float32 Y
+float32 roll
+float32 pitch
+float32 yaw
 ---
 bool done
