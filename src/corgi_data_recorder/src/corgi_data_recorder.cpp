@@ -55,7 +55,7 @@ void signal_handler(int signum) {
         RCLCPP_INFO(rclcpp::get_logger("CorgiDataRecorder"), "Data successfully saved.");
     }
 
-    ros::shutdown();
+    rclcpp::shutdown();
     exit(signum);
 }
 
@@ -113,19 +113,19 @@ void trigger_cb(const corgi_msgs::msg::TriggerStamped msg){
 
                         << "imp_seq" << "," << "imp_sec" << "," << "imp_usec" << ","
                         << "imp_cmd_theta_a" << "," << "imp_cmd_beta_a" << ","
-                        << "imp_cmd_Fx_a"    << "," << "imp_cmd_Fy_a"   << ","
+                        << "imp_cmd_fx_a"    << "," << "imp_cmd_fy_a"   << ","
                         << "imp_cmd_theta_b" << "," << "imp_cmd_beta_b" << ","
-                        << "imp_cmd_Fx_b"    << "," << "imp_cmd_Fy_b"   << ","
+                        << "imp_cmd_fx_b"    << "," << "imp_cmd_fy_b"   << ","
                         << "imp_cmd_theta_c" << "," << "imp_cmd_beta_c" << ","
-                        << "imp_cmd_Fx_c"    << "," << "imp_cmd_Fy_c"   << ","
+                        << "imp_cmd_fx_c"    << "," << "imp_cmd_fy_c"   << ","
                         << "imp_cmd_theta_d" << "," << "imp_cmd_beta_d" << ","
-                        << "imp_cmd_Fx_d"    << "," << "imp_cmd_Fy_d"   << ","
+                        << "imp_cmd_fx_d"    << "," << "imp_cmd_fy_d"   << ","
 
                         << "force_seq" << "," << "force_sec" << "," << "force_usec" << ","
-                        << "force_Fx_a" << "," << "force_Fy_a" << ","
-                        << "force_Fx_b" << "," << "force_Fy_b" << ","
-                        << "force_Fx_c" << "," << "force_Fy_c" << ","
-                        << "force_Fx_d" << "," << "force_Fy_d" << ","
+                        << "force_fx_a" << "," << "force_fy_a" << ","
+                        << "force_fx_b" << "," << "force_fy_b" << ","
+                        << "force_fx_c" << "," << "force_fy_c" << ","
+                        << "force_fx_d" << "," << "force_fy_d" << ","
 
                         << "sim_seq" << "," << "sim_sec" << "," << "sim_usec" << ","
                         << "sim_pos_x" << "," << "sim_pos_y" << "," << "sim_pos_z" << ","
@@ -227,8 +227,8 @@ void write_data() {
         return;
     }
 
-    output_file << rclcpp::Time::now() << ","
-                << motor_cmd.header.seq << "," << motor_cmd.header.stamp.sec << "," << motor_cmd.header.stamp.nsec << ","
+    output_file << this->now() << ","
+                << motor_cmd.header.seq << "," << motor_cmd.header.stamp.sec << "," << motor_cmd.header.stamp.nanosec << ","
                 << motor_cmd.module_a.theta << "," << motor_cmd.module_a.beta << ","
                 << motor_cmd.module_a.torque_r << "," << motor_cmd.module_a.torque_l << ","
                 << motor_cmd.module_b.theta << "," << motor_cmd.module_b.beta << ","
@@ -238,7 +238,7 @@ void write_data() {
                 << motor_cmd.module_d.theta << "," << motor_cmd.module_d.beta << ","
                 << motor_cmd.module_d.torque_r << "," << motor_cmd.module_d.torque_l << ","
 
-                << motor_state.header.seq << "," << motor_state.header.stamp.sec << "," << motor_state.header.stamp.nsec << ","
+                << motor_state.header.seq << "," << motor_state.header.stamp.sec << "," << motor_state.header.stamp.nanosec << ","
                 << motor_state.module_a.theta      << "," << motor_state.module_a.beta << ","
                 << motor_state.module_a.velocity_r << "," << motor_state.module_a.velocity_l << ","
                 << motor_state.module_a.torque_r   << "," << motor_state.module_a.torque_l << ","
@@ -252,35 +252,35 @@ void write_data() {
                 << motor_state.module_d.velocity_r << "," << motor_state.module_d.velocity_l << ","
                 << motor_state.module_d.torque_r   << "," << motor_state.module_d.torque_l << ","
 
-                << imu.header.seq << "," << imu.header.stamp.sec << "," << imu.header.stamp.nsec << ","
+                << imu.header.seq << "," << imu.header.stamp.sec << "," << imu.header.stamp.nanosec << ","
                 << imu.orientation.x << "," << imu.orientation.y << "," << imu.orientation.z << "," << imu.orientation.w << ","
                 << imu.angular_velocity.x << "," << imu.angular_velocity.y << "," << imu.angular_velocity.z << ","
                 << imu.linear_acceleration.x << "," << imu.linear_acceleration.y << "," << imu.linear_acceleration.z << ","
 
-                << imp_cmd.header.seq << "," << imp_cmd.header.stamp.sec << "," << imp_cmd.header.stamp.nsec << ","
+                << imp_cmd.header.seq << "," << imp_cmd.header.stamp.sec << "," << imp_cmd.header.stamp.nanosec << ","
                 << imp_cmd.module_a.theta << "," << imp_cmd.module_a.beta << ","
-                << imp_cmd.module_a.Fx    << "," << imp_cmd.module_a.Fy << ","
+                << imp_cmd.module_a.fx    << "," << imp_cmd.module_a.fy << ","
                 << imp_cmd.module_b.theta << "," << imp_cmd.module_b.beta << ","
-                << imp_cmd.module_b.Fx    << "," << imp_cmd.module_b.Fy << ","
+                << imp_cmd.module_b.fx    << "," << imp_cmd.module_b.fy << ","
                 << imp_cmd.module_c.theta << "," << imp_cmd.module_c.beta << ","
-                << imp_cmd.module_c.Fx    << "," << imp_cmd.module_c.Fy << ","
+                << imp_cmd.module_c.fx    << "," << imp_cmd.module_c.fy << ","
                 << imp_cmd.module_d.theta << "," << imp_cmd.module_d.beta << ","
-                << imp_cmd.module_d.Fx    << "," << imp_cmd.module_d.Fy << ","
+                << imp_cmd.module_d.fx    << "," << imp_cmd.module_d.fy << ","
 
-                << force_state.header.seq << "," << force_state.header.stamp.sec << "," << force_state.header.stamp.nsec << ","
-                << force_state.module_a.Fx    << "," << force_state.module_a.Fy << ","
-                << force_state.module_b.Fx    << "," << force_state.module_b.Fy << ","
-                << force_state.module_c.Fx    << "," << force_state.module_c.Fy << ","
-                << force_state.module_d.Fx    << "," << force_state.module_d.Fy << ","
+                << force_state.header.seq << "," << force_state.header.stamp.sec << "," << force_state.header.stamp.nanosec << ","
+                << force_state.module_a.fx    << "," << force_state.module_a.fy << ","
+                << force_state.module_b.fx    << "," << force_state.module_b.fy << ","
+                << force_state.module_c.fx    << "," << force_state.module_c.fy << ","
+                << force_state.module_d.fx    << "," << force_state.module_d.fy << ","
 
-                << sim_data.header.seq << "," << sim_data.header.stamp.sec << "," << sim_data.header.stamp.nsec << ","
+                << sim_data.header.seq << "," << sim_data.header.stamp.sec << "," << sim_data.header.stamp.nanosec << ","
                 << sim_data.position.x << "," << sim_data.position.y << "," << sim_data.position.z << ","
                 << sim_data.orientation.x << "," << sim_data.orientation.y << "," << sim_data.orientation.z << "," << sim_data.orientation.w << ","
 
                 << odom_pos.x << "," << odom_pos.y << "," << odom_z << ","
                 << odom_vel.x << "," << odom_vel.y << "," << odom_vel.z << ","
 
-                << power_state.header.seq << "," << power_state.header.stamp.sec << "," << power_state.header.stamp.nsec << ","
+                << power_state.header.seq << "," << power_state.header.stamp.sec << "," << power_state.header.stamp.nanosec << ","
                 << power_state.v_0 << "," << power_state.i_0 << ","
                 << power_state.v_1 << "," << power_state.i_1 << ","
                 << power_state.v_2 << "," << power_state.i_2 << ","
@@ -346,7 +346,7 @@ int main(int argc, char **argv) {
         output_file.close();
     }
 
-    ros::shutdown();
+    rclcpp::shutdown();
 
     return 0;
 }

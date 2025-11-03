@@ -1,6 +1,6 @@
 float64 theta
 float64 beta
-float64 fxd
+float64 fx
 float64 fy
 float64 mx
 float64 my

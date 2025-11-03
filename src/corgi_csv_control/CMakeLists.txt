@@ -25,4 +25,6 @@ include_directories(
 ament_export_dependencies(rclcpp std_msgs rosgraph_msgs geometry_msgs corgi_msgs)
 ament_package()
 
-add_subdirectory(src)
+# Define the executable and link required libraries
+add_executable(corgi_csv_control src/corgi_csv_control.cpp)
+ament_target_dependencies(corgi_csv_control rclcpp std_msgs rosgraph_msgs geometry_msgs corgi_msgs)
