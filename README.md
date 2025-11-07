@@ -110,7 +110,7 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
     Clone the `Eigen` repository and follow the installation instructions:
       ```bash
       cd ~/corgi_ws/install
-      git clone git@gitlab.com:libeigen/eigen.git
+      git clone https://gitlab.com/libeigen/eigen.git
       cd eigen
       mkdir build && cd build
       cmake .. -DCMAKE_PREFIX_PATH=$HOME/corgi_ws/install -DCMAKE_INSTALL_PREFIX=$HOME/corgi_ws/install
