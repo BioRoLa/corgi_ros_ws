@@ -120,21 +120,33 @@ The system uses ROS on a high-level computer (PC/Jetson) to communicate with a l
     3. **grpc_core**
     Install gRPC & grpc_core as follows: [**grpc_core**](https://github.com/BioRoLa/grpc_core)
 
-    4. **osqp_eigen**
+    4. **osqp**
+    Install osqp as follow: [**osqp**](https://osqp.org/docs/get_started/sources.html)
+      ```bash
+      git clone https://github.com/osqp/osqp
+      cd osqp
+      mkdir build && cd build
+      cmake -G "Unix Makefiles" ..
+      cmake --build .
+      make -j16
+      sudo make install
+      ```
+    
+    5. **osqp_eigen**
     Install osqp_eigen as follows: [**osqp_eigen**](https://github.com/robotology/osqp-eigen)
 
-    5. **MIP_SDK**
+    6. **MIP_SDK**
     Clone the `mip_sdk` repository and follow the installation instructions:
       ```bash
-       cd ~/corgi_ws/install
-       git clone --branch fix-install-interface --single-branch https://github.com/hiho817/mip_sdk.git
-       cd mip_sdk
-       git checkout v2.0.0
-       mkdir build
-       cd build
-       cmake .. -DMIP_USE_SERIAL=ON -DCMAKE_PREFIX_PATH=$HOME/corgi_ws/install -DCMAKE_INSTALL_PREFIX=$HOME/corgi_ws/install
-       make -j16
-       sudo make install
+      cd ~/corgi_ws/install
+      git clone --branch fix-install-interface --single-branch https://github.com/hiho817/mip_sdk.git
+      cd mip_sdk
+      git checkout v2.0.0
+      mkdir build
+      cd build
+      cmake .. -DMIP_USE_SERIAL=ON -DCMAKE_PREFIX_PATH=$HOME/corgi_ws/install -DCMAKE_INSTALL_PREFIX=$HOME/corgi_ws/install
+      make -j16
+      sudo make install
       ```
 
 
