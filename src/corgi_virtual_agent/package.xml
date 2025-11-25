@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<package format="2">
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
   <name>corgi_virtual_agent</name>
   <version>0.0.0</version>
   <description>The corgi_virtual_agent package</description>
@@ -7,27 +8,15 @@
   <license>TODO</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_depend>rosgraph_msgs</build_depend>
-  <build_depend>geometry_msgs</build_depend>
-  <build_depend>message_generation</build_depend>
-  <build_depend>rclcpp</build_depend>
-  <build_depend>rclpy</build_depend>
-  <build_export_depend>rosgraph_msgs</build_export_depend>
-  <build_export_depend>geometry_msgs</build_export_depend>
-  <build_export_depend>message_runtime</build_export_depend>
-  <build_export_depend>rclcpp</build_export_depend>
-  <build_export_depend>rclpy</build_export_depend>
-  <exec_depend>std_msgs</exec_depend>
-  <exec_depend>rosgraph_msgs</exec_depend>
-  <exec_depend>geometry_msgs</exec_depend>
-  <exec_depend>message_runtime</exec_depend>
-  <exec_depend>message_generation</exec_depend>
-  <exec_depend>rclcpp</exec_depend>
-  <exec_depend>rclpy</exec_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>rosgraph_msgs</depend>
+  <depend>geometry_msgs</depend>
 
   <export>
     <build_type>ament_cmake</build_type>
-
+    
   </export>
 </package>

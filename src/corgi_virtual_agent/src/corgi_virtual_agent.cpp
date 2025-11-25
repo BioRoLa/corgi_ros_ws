@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
 
-    ros::shutdown();
+    rclcpp::shutdown();
 
 
     return 0;
