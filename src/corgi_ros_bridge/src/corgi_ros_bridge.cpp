@@ -40,9 +40,9 @@ motor_msg::MotorStateStamped        grpc_motor_state;
 power_msg::PowerStateStamped        grpc_power_state;
 steering_msg::SteeringStateStamped  grpc_steer_state;
 
-ros::Publisher ros_motor_state_pub;
-ros::Publisher ros_power_state_pub;
-ros::Publisher ros_steer_state_pub;
+rclcpp::Publisher<corgi_msgs::msg::MotorStateStamped>::SharedPtr ros_motor_state_pub; 
+rclcpp::Publisher<corgi_msgs::msg::PowerStateStamped>::SharedPtr ros_power_state_pub; 
+rclcpp::Publisher<corgi_msgs::msg::SteeringStateStamped>::SharedPtr ros_steer_state_pub;
 core::Publisher<motor_msg::MotorCmdStamped>         *grpc_motor_cmd_pub;
 core::Publisher<power_msg::PowerCmdStamped>         *grpc_power_cmd_pub;
 core::Publisher<steering_msg::SteeringCmdStamped>   *grpc_steer_cmd_pub;
@@ -88,7 +88,7 @@ void ros_motor_cmd_cb(const corgi_msgs::msg::MotorCmdStamped cmd) {
 
     grpc_motor_cmd.mutable_header()->set_seq(ros_motor_cmd.header.seq);
     grpc_motor_cmd.mutable_header()->mutable_stamp()->set_sec(ros_motor_cmd.header.stamp.sec);
-    grpc_motor_cmd.mutable_header()->mutable_stamp()->set_usec(ros_motor_cmd.header.stamp.nsec);
+    grpc_motor_cmd.mutable_header()->mutable_stamp()->set_usec(ros_motor_cmd.header.stamp.nanosec);
 
     grpc_motor_cmd_pub->publish(grpc_motor_cmd);
 }
@@ -108,8 +108,8 @@ void ros_power_cmd_cb(const corgi_msgs::msg::PowerCmdStamped cmd) {
 
     grpc_power_cmd.mutable_header()->set_seq(ros_power_cmd.header.seq);
     grpc_power_cmd.mutable_header()->mutable_stamp()->set_sec(ros_power_cmd.header.stamp.sec);
-    grpc_power_cmd.mutable_header()->mutable_stamp()->set_usec(ros_power_cmd.header.stamp.nsec);
-
+    grpc_power_cmd.mutable_header()->mutable_stamp()->set_usec(ros_power_cmd.header.stamp.nanosec);
+    
     grpc_power_cmd_pub->publish(grpc_power_cmd);
 }
 
@@ -123,7 +123,7 @@ void ros_steer_cmd_cb(const corgi_msgs::msg::SteeringCmdStamped cmd) {
 
     grpc_steer_cmd.mutable_header()->set_seq(ros_steer_cmd.header.seq);
     grpc_steer_cmd.mutable_header()->mutable_stamp()->set_sec(ros_steer_cmd.header.stamp.sec);
-    grpc_steer_cmd.mutable_header()->mutable_stamp()->set_usec(ros_steer_cmd.header.stamp.nsec);
+    grpc_steer_cmd.mutable_header()->mutable_stamp()->set_usec(ros_steer_cmd.header.stamp.nanosec);
 
     grpc_steer_cmd_pub->publish(grpc_steer_cmd);
 }
@@ -158,9 +158,9 @@ void grpc_motor_state_cb(const motor_msg::MotorStateStamped state) {
 
     ros_motor_state.header.seq = grpc_motor_state.header().seq();
     ros_motor_state.header.stamp.sec = grpc_motor_state.header().stamp().sec();
-    ros_motor_state.header.stamp.nsec = grpc_motor_state.header().stamp().usec();
+    ros_motor_state.header.stamp.nanosec = grpc_motor_state.header().stamp().usec() / 1000;
 
-    ros_motor_state_pub.publish(ros_motor_state);
+    ros_motor_state_pub->publish(ros_motor_state);
 }
 
 void grpc_power_state_cb(const power_msg::PowerStateStamped state) {
@@ -201,9 +201,9 @@ void grpc_power_state_cb(const power_msg::PowerStateStamped state) {
 
     ros_power_state.header.seq = grpc_power_state.header().seq();
     ros_power_state.header.stamp.sec = grpc_power_state.header().stamp().sec();
-    ros_power_state.header.stamp.nsec = grpc_power_state.header().stamp().usec();
+    ros_power_state.header.stamp.nanosec = grpc_power_state.header().stamp().usec() / 1000;
 
-    ros_power_state_pub.publish(ros_power_state);
+    ros_power_state_pub->publish(ros_power_state);
 }
 
 void grpc_steer_state_cb(const steering_msg::SteeringStateStamped state) {
@@ -217,13 +217,15 @@ void grpc_steer_state_cb(const steering_msg::SteeringStateStamped state) {
 
     ros_steer_state.header.seq = grpc_steer_state.header().seq();
     ros_steer_state.header.stamp.sec = grpc_steer_state.header().stamp().sec();
-    ros_steer_state.header.stamp.nsec = grpc_steer_state.header().stamp().usec();
+    ros_steer_state.header.stamp.nanosec = grpc_steer_state.header().stamp().usec() / 1000;
 
-    ros_steer_state_pub.publish(ros_steer_state);
+    ros_steer_state_pub->publish(ros_steer_state);
 }
 
 int main(int argc, char **argv) {
-    ROS_INFO_STREAM("Corgi ROS Bridge Starts\n");
+    rclcpp::init(argc, argv);
+    auto node = rclcpp::Node::make_shared("corgi_ros_bridge");
+    RCLCPP_INFO(node->get_logger(), "Corgi ROS Bridge Starts");
 
     bool debug_mode = false;
     if (argc >= 2 && argv[1] != nullptr) {
@@ -232,16 +234,13 @@ int main(int argc, char **argv) {
         }
     }
 
-    rclcpp::init(argc, argv);
-
-    auto nh = rclcpp::Node::make_shared("corgi_ros_bridge");
-    auto ros_motor_cmd_sub = nh.subscribe<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1, ros_motor_cmd_cb);
-    auto ros_power_cmd_sub = nh.subscribe<corgi_msgs::msg::PowerCmdStamped>("power/command", 1, ros_power_cmd_cb);
-    auto ros_steer_cmd_sub = nh.subscribe<corgi_msgs::msg::SteeringCmdStamped>("steer/command", 1, ros_steer_cmd_cb);
-    auto ros_trigger_sub = nh.subscribe<corgi_msgs::msg::TriggerStamped>("trigger", 1, ros_trigger_cb);
-    ros_motor_state_pub = nh.advertise<corgi_msgs::msg::MotorStateStamped>("motor/state", 1);
-    ros_power_state_pub = nh.advertise<corgi_msgs::msg::PowerStateStamped>("power/state", 1);
-    ros_steer_state_pub = nh.advertise<corgi_msgs::msg::SteeringStateStamped>("steer/state", 1);
+    auto ros_motor_cmd_sub = node->create_subscription<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1, ros_motor_cmd_cb);
+    auto ros_power_cmd_sub = node->create_subscription<corgi_msgs::msg::PowerCmdStamped>("power/command", 1, ros_power_cmd_cb);
+    auto ros_steer_cmd_sub = node->create_subscription<corgi_msgs::msg::SteeringCmdStamped>("steer/command", 1, ros_steer_cmd_cb);
+    auto ros_trigger_sub = node->create_subscription<corgi_msgs::msg::TriggerStamped>("trigger", 1, ros_trigger_cb);
+    ros_motor_state_pub = node->create_publisher<corgi_msgs::msg::MotorStateStamped>("motor/state", 1);
+    ros_power_state_pub = node->create_publisher<corgi_msgs::msg::PowerStateStamped>("power/state", 1);
+    ros_steer_state_pub = node->create_publisher<corgi_msgs::msg::SteeringStateStamped>("steer/state", 1);
 
     core::NodeHandler nh_;
     core::Subscriber<motor_msg::MotorStateStamped> &grpc_motor_state_sub = nh_.subscribe<motor_msg::MotorStateStamped>("motor/state", 1000, grpc_motor_state_cb);
@@ -255,12 +254,12 @@ int main(int argc, char **argv) {
 
     int loop_counter = 0;
     while (rclcpp::ok()) {
-        if (debug_mode) ROS_INFO_STREAM("Loop Count: " << loop_counter);
+        if (debug_mode) RCLCPP_INFO(node->get_logger(), "Loop Count: %d", loop_counter);
 
         rclcpp::spin_some(node);
         core::spinOnce();
 
-        if (debug_mode) ROS_INFO_STREAM(" ");
+        if (debug_mode) RCLCPP_INFO(node->get_logger()," ");
 
         loop_counter++;
         rate.sleep();
@@ -268,7 +267,7 @@ int main(int argc, char **argv) {
 
     RCLCPP_INFO(rclcpp::get_logger("CorgiRosBridge"), "Corgi ROS Bridge is killed");
 
-    ros::shutdown();
+    rclcpp::shutdown();
     
     return 0;
 }
