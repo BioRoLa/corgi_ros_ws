@@ -22,3 +22,5 @@ output_data/*
 **/build
 **/log
 **/COLCON_IGNORE
+
+**/__pycache__/
