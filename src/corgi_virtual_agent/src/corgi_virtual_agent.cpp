@@ -15,17 +15,20 @@ std::mutex mutex_motor_state;
 std::mutex mutex_power_state;
 std::mutex mutex_steer_state;
 std::mutex mutex_robot_state;
+std::mutex mutex_config_state;
 std::mutex mutex_log;
 
 motor_msg::MotorCmdStamped          motor_cmd;
 // power_msg::PowerCmdStamped          power_cmd;
 robot_msg::RobotCmdStamped          robot_cmd;
 steering_msg::SteeringCmdStamped    steer_cmd;
+config_msg::ConfigStamped           config_cmd;
 motor_msg::MotorStateStamped        motor_state;
 power_msg::PowerStateStamped        power_state;
 robot_msg::RobotStateStamped        robot_state;
 steering_msg::SteeringStateStamped  steer_state;
-log_msg::LogEntry              log_entry;
+config_msg::ConfigStamped           config_state;
+log_msg::LogEntry                   log_entry;
 
 
 void motor_cmd_cb(const motor_msg::MotorCmdStamped cmd) {
@@ -113,6 +116,54 @@ void robot_cmd_cb(const robot_msg::RobotCmdStamped cmd) {
     std::cout << "Robot state updated. Publishing mode: " << robot_state.robot_mode() << std::endl;
 }
 
+void config_cmd_cb(const config_msg::ConfigStamped cmd) {
+    std::lock_guard<std::mutex> lock(mutex_config_state);
+
+    std::cout << "Received config command! "
+              << "Module: " << cmd.module() 
+              << ", Motor: " << cmd.motor()
+              << ", Mode: " << (cmd.mode() == config_msg::READ ? "READ" : "WRITE")
+              << ", Type: " << (cmd.type() == config_msg::INT ? "INT" : "FLOAT")
+              << ", Address: " << cmd.address()
+              << ", Value_i: " << cmd.value_i()
+              << ", Value_f: " << cmd.value_f()
+              << std::endl;
+
+    // Echo back the config request as a reply
+    config_state.set_transmit(cmd.transmit());
+    config_state.set_module(cmd.module());
+    config_state.set_motor(cmd.motor());
+    config_state.set_mode(cmd.mode());
+    config_state.set_type(cmd.type());
+    config_state.set_address(cmd.address());
+    
+    // For simulation, echo back the values or return dummy values
+    if (cmd.mode() == config_msg::WRITE) {
+        // Echo write values
+        config_state.set_value_i(cmd.value_i());
+        config_state.set_value_f(cmd.value_f());
+    } else {
+        // READ mode - return dummy values for simulation
+        if (cmd.type() == config_msg::INT) {
+            config_state.set_value_i(123);  // Dummy int value
+            config_state.set_value_f(0.0);
+        } else {
+            config_state.set_value_i(0);
+            config_state.set_value_f(45.67);  // Dummy float value
+        }
+    }
+    
+    config_state.set_error_code(0);  // No error
+
+    timeval currentTime;
+    gettimeofday(&currentTime, nullptr);
+    config_state.mutable_header()->set_seq(cmd.header().seq());
+    config_state.mutable_header()->mutable_stamp()->set_sec(currentTime.tv_sec);
+    config_state.mutable_header()->mutable_stamp()->set_usec(currentTime.tv_usec);
+    
+    std::cout << "Config reply prepared. Error code: " << config_state.error_code() << std::endl;
+}
+
 void log_cb(const log_msg::LogEntry entry) {
     std::lock_guard<std::mutex> lock(mutex_log);
 
@@ -137,12 +188,14 @@ int main(int argc, char **argv) {
     core::Publisher<power_msg::PowerStateStamped> &power_state_pub = nh_.advertise<power_msg::PowerStateStamped>("power/state");
     core::Publisher<robot_msg::RobotStateStamped> &robot_state_pub = nh_.advertise<robot_msg::RobotStateStamped>("robot/state");
     core::Publisher<steering_msg::SteeringStateStamped> &steer_state_pub = nh_.advertise<steering_msg::SteeringStateStamped>("steer/state");
+    core::Publisher<config_msg::ConfigStamped> &config_state_pub = nh_.advertise<config_msg::ConfigStamped>("motor/config/reply");
     core::Publisher<log_msg::LogEntry> &log_pub = nh_.advertise<log_msg::LogEntry>("log");
 
     core::Subscriber<motor_msg::MotorCmdStamped> &motor_cmd_sub = nh_.subscribe<motor_msg::MotorCmdStamped>("motor/command", 1000, motor_cmd_cb);
     // core::Subscriber<power_msg::PowerCmdStamped> &power_cmd_sub = nh_.subscribe<power_msg::PowerCmdStamped>("power/command", 1000, power_cmd_cb);
     core::Subscriber<steering_msg::SteeringCmdStamped> &steer_cmd_sub = nh_.subscribe<steering_msg::SteeringCmdStamped>("steer/command", 1000, steer_cmd_cb);
     core::Subscriber<robot_msg::RobotCmdStamped> &robot_cmd_sub = nh_.subscribe<robot_msg::RobotCmdStamped>("robot/command", 1000, robot_cmd_cb);
+    core::Subscriber<config_msg::ConfigStamped> &config_cmd_sub = nh_.subscribe<config_msg::ConfigStamped>("motor/config/request", 1000, config_cmd_cb);
     core::Rate rate(1000);
 
     while (rclcpp::ok()) {
@@ -168,6 +221,11 @@ int main(int argc, char **argv) {
             robot_state_pub.publish(robot_state);
         }
 
+        {
+            std::lock_guard<std::mutex> lock(mutex_config_state);
+            config_state_pub.publish(config_state);
+        }
+        
         {
             std::lock_guard<std::mutex> lock(mutex_log);
             log_pub.publish(log_entry);
