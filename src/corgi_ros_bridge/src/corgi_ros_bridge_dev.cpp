@@ -27,41 +27,49 @@
 std::mutex mutex_grpc_motor_cmd;
 std::mutex mutex_grpc_robot_cmd;
 std::mutex mutex_grpc_steer_cmd;
+std::mutex mutex_grpc_config_cmd;
 
 std::mutex mutex_ros_motor_state;
 std::mutex mutex_ros_power_state;
 std::mutex mutex_ros_robot_state;
 std::mutex mutex_ros_steer_state;
+std::mutex mutex_ros_config_state;
 
 std::mutex mutex_ros_log;
 
 corgi_msgs::msg::MotorCmdStamped         ros_motor_cmd;
 corgi_msgs::msg::RobotCmdStamped         ros_robot_cmd;
 corgi_msgs::msg::SteeringCmdStamped      ros_steer_cmd;
+corgi_msgs::msg::ConfigStamped           ros_config_cmd;
 corgi_msgs::msg::MotorStateStamped       ros_motor_state;
 corgi_msgs::msg::PowerStateStamped       ros_power_state;
 corgi_msgs::msg::RobotStateStamped       ros_robot_state;
 corgi_msgs::msg::SteeringStateStamped    ros_steer_state;
-corgi_msgs::msg::LogStamped               ros_log;
+corgi_msgs::msg::ConfigStamped           ros_config_state;
+corgi_msgs::msg::LogStamped              ros_log;
 
 motor_msg::MotorCmdStamped          grpc_motor_cmd;
 robot_msg::RobotCmdStamped          grpc_robot_cmd;
 steering_msg::SteeringCmdStamped    grpc_steer_cmd;
+config_msg::ConfigStamped           grpc_config_cmd;
 motor_msg::MotorStateStamped        grpc_motor_state;
 power_msg::PowerStateStamped        grpc_power_state;
 robot_msg::RobotStateStamped        grpc_robot_state;
 steering_msg::SteeringStateStamped  grpc_steer_state;
-log_msg::LogEntry              grpc_log;
+config_msg::ConfigStamped           grpc_config_state;
+log_msg::LogEntry                   grpc_log;
 
 rclcpp::Publisher<corgi_msgs::msg::MotorStateStamped>::SharedPtr ros_motor_state_pub; 
 rclcpp::Publisher<corgi_msgs::msg::PowerStateStamped>::SharedPtr ros_power_state_pub;
 rclcpp::Publisher<corgi_msgs::msg::RobotStateStamped>::SharedPtr ros_robot_state_pub; 
 rclcpp::Publisher<corgi_msgs::msg::SteeringStateStamped>::SharedPtr ros_steer_state_pub;
+rclcpp::Publisher<corgi_msgs::msg::ConfigStamped>::SharedPtr ros_config_state_pub;
 rclcpp::Publisher<corgi_msgs::msg::LogStamped>::SharedPtr ros_log_pub;
 
 core::Publisher<motor_msg::MotorCmdStamped>         *grpc_motor_cmd_pub;
 core::Publisher<robot_msg::RobotCmdStamped>         *grpc_robot_cmd_pub;
 core::Publisher<steering_msg::SteeringCmdStamped>   *grpc_steer_cmd_pub;
+core::Publisher<config_msg::ConfigStamped>          *grpc_config_cmd_pub;
 
 void ros_motor_cmd_cb(const corgi_msgs::msg::MotorCmdStamped cmd){
     std::lock_guard<std::mutex> lock(mutex_grpc_motor_cmd);
@@ -129,6 +137,29 @@ void ros_robot_cmd_cb(const corgi_msgs::msg::RobotCmdStamped cmd) {
     grpc_robot_cmd.mutable_header()->mutable_stamp()->set_usec(ros_robot_cmd.header.stamp.nanosec / 1000);
 
     grpc_robot_cmd_pub->publish(grpc_robot_cmd);
+}
+
+void ros_config_cmd_cb(const corgi_msgs::msg::ConfigStamped cmd) {
+    std::lock_guard<std::mutex> lock(mutex_grpc_config_cmd);
+
+    ros_config_cmd = cmd;
+
+    // Map ROS message fields to gRPC proto fields according to Config.proto
+    grpc_config_cmd.set_transmit(ros_config_cmd.transmit);
+    grpc_config_cmd.set_module(static_cast<config_msg::Module>(ros_config_cmd.module));
+    grpc_config_cmd.set_motor(static_cast<config_msg::Motor>(ros_config_cmd.motor));
+    grpc_config_cmd.set_mode(static_cast<config_msg::ConfigMode>(ros_config_cmd.mode));
+    grpc_config_cmd.set_type(static_cast<config_msg::ConfigType>(ros_config_cmd.type));
+    grpc_config_cmd.set_address(ros_config_cmd.address);
+    grpc_config_cmd.set_value_f(ros_config_cmd.value_f);
+    grpc_config_cmd.set_value_i(ros_config_cmd.value_i);
+    grpc_config_cmd.set_error_code(ros_config_cmd.error_code);
+
+    grpc_config_cmd.mutable_header()->set_seq(ros_config_cmd.header.seq);
+    grpc_config_cmd.mutable_header()->mutable_stamp()->set_sec(ros_config_cmd.header.stamp.sec);
+    grpc_config_cmd.mutable_header()->mutable_stamp()->set_usec(ros_config_cmd.header.stamp.nanosec / 1000);
+
+    grpc_config_cmd_pub->publish(grpc_config_cmd);
 }
 
 void grpc_motor_state_cb(const motor_msg::MotorStateStamped state) {
@@ -240,6 +271,29 @@ void grpc_robot_state_cb(const robot_msg::RobotStateStamped state) {
     ros_robot_state_pub->publish(ros_robot_state);
 }
 
+void grpc_config_state_cb(const config_msg::ConfigStamped state) {
+    std::lock_guard<std::mutex> lock(mutex_ros_config_state);
+
+    grpc_config_state = state;
+
+    // Map gRPC proto fields to ROS message fields according to Config.proto
+    ros_config_state.transmit = grpc_config_state.transmit();
+    ros_config_state.module = static_cast<int32_t>(grpc_config_state.module());
+    ros_config_state.motor = static_cast<int32_t>(grpc_config_state.motor());
+    ros_config_state.mode = static_cast<int32_t>(grpc_config_state.mode());
+    ros_config_state.type = static_cast<int32_t>(grpc_config_state.type());
+    ros_config_state.address = grpc_config_state.address();
+    ros_config_state.value_f = grpc_config_state.value_f();
+    ros_config_state.value_i = grpc_config_state.value_i();
+    ros_config_state.error_code = grpc_config_state.error_code();
+
+    ros_config_state.header.seq = grpc_config_state.header().seq();
+    ros_config_state.header.stamp.sec = grpc_config_state.header().stamp().sec();
+    ros_config_state.header.stamp.nanosec = grpc_config_state.header().stamp().usec() * 1000;
+
+    ros_config_state_pub->publish(ros_config_state);
+}
+
 void grpc_log_cb(const log_msg::LogEntry log) {
     std::lock_guard<std::mutex> lock(mutex_ros_log);
 
@@ -271,10 +325,12 @@ int main(int argc, char **argv) {
     auto ros_motor_cmd_sub = node->create_subscription<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1, ros_motor_cmd_cb);
     auto ros_steer_cmd_sub = node->create_subscription<corgi_msgs::msg::SteeringCmdStamped>("steer/command", 1, ros_steer_cmd_cb);
     auto ros_robot_cmd_sub = node->create_subscription<corgi_msgs::msg::RobotCmdStamped>("robot/command", 1, ros_robot_cmd_cb);
+    auto ros_config_cmd_sub = node->create_subscription<corgi_msgs::msg::ConfigStamped>("config/command", 1, ros_config_cmd_cb);
     ros_motor_state_pub = node->create_publisher<corgi_msgs::msg::MotorStateStamped>("motor/state", 1);
     ros_power_state_pub = node->create_publisher<corgi_msgs::msg::PowerStateStamped>("power/state", 1);
     ros_steer_state_pub = node->create_publisher<corgi_msgs::msg::SteeringStateStamped>("steer/state", 1);
     ros_robot_state_pub = node->create_publisher<corgi_msgs::msg::RobotStateStamped>("robot/state", 1);
+    ros_config_state_pub = node->create_publisher<corgi_msgs::msg::ConfigStamped>("config/state", 1);
     ros_log_pub = node->create_publisher<corgi_msgs::msg::LogStamped>("log", 1);
 
     core::NodeHandler nh_;
@@ -282,11 +338,12 @@ int main(int argc, char **argv) {
     core::Subscriber<power_msg::PowerStateStamped> &grpc_power_state_sub = nh_.subscribe<power_msg::PowerStateStamped>("power/state", 1000, grpc_power_state_cb);
     core::Subscriber<steering_msg::SteeringStateStamped> &grpc_steer_state_sub = nh_.subscribe<steering_msg::SteeringStateStamped>("steer/state", 1000, grpc_steer_state_cb);
     core::Subscriber<robot_msg::RobotStateStamped> &grpc_robot_state_sub = nh_.subscribe<robot_msg::RobotStateStamped>("robot/state", 1000, grpc_robot_state_cb);
+    core::Subscriber<config_msg::ConfigStamped> &grpc_config_state_sub = nh_.subscribe<config_msg::ConfigStamped>("motor/config/reply", 1000, grpc_config_state_cb);
     core::Subscriber<log_msg::LogEntry> &grpc_log_sub = nh_.subscribe<log_msg::LogEntry>("/log", 100, grpc_log_cb, 100);
-
     grpc_motor_cmd_pub = &(nh_.advertise<motor_msg::MotorCmdStamped>("motor/command"));
     grpc_steer_cmd_pub = &(nh_.advertise<steering_msg::SteeringCmdStamped>("steer/command"));
     grpc_robot_cmd_pub = &(nh_.advertise<robot_msg::RobotCmdStamped>("robot/command"));
+    grpc_config_cmd_pub = &(nh_.advertise<config_msg::ConfigStamped>("motor/config/request"));
 
     core::Rate rate(1000);
 
