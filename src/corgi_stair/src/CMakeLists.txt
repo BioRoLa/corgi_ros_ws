@@ -1,0 +1,57 @@
+# Executables
+add_executable(stair_main_indoor stair_main_indoor.cpp)
+ament_target_dependencies(stair_main_indoor rclcpp corgi_msgs corgi_walk corgi_utils)
+target_link_libraries(stair_main_indoor corgi_stair)
+
+add_executable(stair_main_indoor_open stair_main_indoor_open.cpp)
+ament_target_dependencies(stair_main_indoor_open rclcpp corgi_msgs corgi_walk corgi_utils)
+target_link_libraries(stair_main_indoor_open corgi_stair)
+
+add_executable(stair_main_outdoor stair_main_outdoor.cpp)
+ament_target_dependencies(stair_main_outdoor rclcpp corgi_msgs corgi_walk corgi_utils)
+target_link_libraries(stair_main_outdoor corgi_stair)
+
+add_executable(stair_main_outdoor_open stair_main_outdoor_open.cpp)
+ament_target_dependencies(stair_main_outdoor_open rclcpp corgi_msgs corgi_walk corgi_utils)
+target_link_libraries(stair_main_outdoor_open corgi_stair)
+
+add_executable(stair_main_outdoor2 stair_main_outdoor2.cpp)
+ament_target_dependencies(stair_main_outdoor2 rclcpp corgi_msgs corgi_walk corgi_utils)
+target_link_libraries(stair_main_outdoor2 corgi_stair)
+
+add_executable(stair_main_outdoor3 stair_main_outdoor3.cpp)
+ament_target_dependencies(stair_main_outdoor3 rclcpp corgi_msgs corgi_walk corgi_utils)
+target_link_libraries(stair_main_outdoor3 corgi_stair)
+
+# add_executable(normal_vector_plane_segmentation normal_vector_plane_segmentation.cpp)
+# ament_target_dependencies(normal_vector_plane_segmentation rclcpp corgi_msgs corgi_walk corgi_utils)
+# target_link_libraries(normal_vector_plane_segmentation corgi_stair)
+
+# add_executable(stair_edge_plane_segmentation stair_edge_plane_segmentation.cpp)
+# ament_target_dependencies(stair_edge_plane_segmentation rclcpp)
+
+add_executable(stair_estimator stair_estimator.cpp)
+ament_target_dependencies(stair_estimator rclcpp corgi_msgs corgi_walk corgi_utils)
+target_link_libraries(stair_estimator corgi_stair)
+
+add_executable(save_motor_cmd save_motor_cmd.cpp)
+ament_target_dependencies(save_motor_cmd rclcpp corgi_msgs corgi_walk corgi_utils)
+target_link_libraries(save_motor_cmd corgi_stair)
+
+add_executable(play_motor_cmd play_motor_cmd.cpp)
+ament_target_dependencies(play_motor_cmd rclcpp corgi_msgs corgi_walk corgi_utils)
+target_link_libraries(play_motor_cmd corgi_stair)
+
+# Install executables
+install(TARGETS
+  stair_main_indoor
+  stair_main_indoor_open
+  stair_main_outdoor
+  stair_main_outdoor_open
+  stair_main_outdoor2
+  stair_main_outdoor3
+  stair_estimator
+  save_motor_cmd
+  play_motor_cmd
+  DESTINATION lib/${PROJECT_NAME}
+)
