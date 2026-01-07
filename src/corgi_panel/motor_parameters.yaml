@@ -1,0 +1,448 @@
+# Motor Parameter Configuration
+# All parameters data for motor configuration
+
+parameters:
+  # Group: System
+  - Variable: CAN_ID
+    Address: 1
+    Writeable: 1
+    Init: 1
+    Min: 0
+    Max: 127
+    Group: System
+    Unit: ""
+    DataType: int
+    Desc: "CAN bus ID of the motor"
+
+  - Variable: CAN_MASTER
+    Address: 2
+    Writeable: 1
+    Init: 0
+    Min: 0
+    Max: 127
+    Group: System
+    Unit: ""
+    DataType: int
+    Desc: "CAN bus Master ID"
+
+  - Variable: CAN_TIMEOUT
+    Address: 3
+    Writeable: 1
+    Init: 0
+    Min: 0
+    Max: 2147483647
+    Group: System
+    Unit: "(cycles)"
+    DataType: int
+    Desc: "CAN timeout period (0 = none)"
+
+  # Group: Control
+  - Variable: I_BW
+    Address: 2
+    Writeable: 1
+    Init: 1000
+    Min: 100
+    Max: 2000
+    Group: Control
+    Unit: "(Hz)"
+    DataType: float
+    Desc: "Current bandwidth"
+
+  - Variable: KP_MAX
+    Address: 25
+    Writeable: 1
+    Init: 500
+    Min: 0
+    Max: 1000
+    Group: Control
+    Unit: ""
+    DataType: float
+    Desc: "Maximum Position P-gain value"
+
+  - Variable: KI_MAX
+    Address: 26
+    Writeable: 1
+    Init: 0
+    Min: 0
+    Max: 10
+    Group: Control
+    Unit: ""
+    DataType: float
+    Desc: "Maximum Position Integral I-gain value"
+
+  - Variable: KD_MAX
+    Address: 27
+    Writeable: 1
+    Init: 5
+    Min: 0
+    Max: 5
+    Group: Control
+    Unit: ""
+    DataType: float
+    Desc: "Maximum velocity D-gain value"
+
+  # Group: Limits
+  - Variable: I_MAX
+    Address: 3
+    Writeable: 1
+    Init: 40.0
+    Min: 0.0
+    Max: 75.0
+    Group: Limits
+    Unit: "(A)"
+    DataType: float
+    Desc: "Maximum current"
+
+  - Variable: I_FW_MAX
+    Address: 6
+    Writeable: 1
+    Init: 0.0
+    Min: 0.0
+    Max: 33.0
+    Group: Limits
+    Unit: "(A)"
+    DataType: float
+    Desc: "Maximum flux weakening current"
+
+  - Variable: P_MIN
+    Address: 19
+    Writeable: 1
+    Init: 0.0
+    Min: -2147483647.0
+    Max: 0.0
+    Group: Limits
+    Unit: "(rad)"
+    DataType: float
+    Desc: "Minimum position setpoint"
+
+  - Variable: P_MAX
+    Address: 20
+    Writeable: 1
+    Init: 6.283
+    Min: 0.0
+    Max: 2147483647.0
+    Group: Limits
+    Unit: "(rad)"
+    DataType: float
+    Desc: "Maximum position setpoint"
+
+  - Variable: V_MIN
+    Address: 21
+    Writeable: 1
+    Init: -45.0
+    Min: -2147483647.0
+    Max: 0.0
+    Group: Limits
+    Unit: "(rad/s)"
+    DataType: float
+    Desc: "Minimum velocity setpoint"
+
+  - Variable: V_MAX
+    Address: 22
+    Writeable: 1
+    Init: 45.0
+    Min: 0.0
+    Max: 2147483647.0
+    Group: Limits
+    Unit: "(rad/s)"
+    DataType: float
+    Desc: "Maximum velocity setpoint"
+
+  - Variable: T_MIN
+    Address: 23
+    Writeable: 1
+    Init: -20.0
+    Min: -2147483647.0
+    Max: 0.0
+    Group: Limits
+    Unit: "(Nm)"
+    DataType: float
+    Desc: "Minimum torque setpoint"
+
+  - Variable: T_MAX
+    Address: 24
+    Writeable: 1
+    Init: 20.0
+    Min: 0.0
+    Max: 2147483647.0
+    Group: Limits
+    Unit: "(Nm)"
+    DataType: float
+    Desc: "Maximum torque setpoint"
+
+  - Variable: TEMP_MAX
+    Address: 8
+    Writeable: 0
+    Init: 125
+    Min: ""
+    Max: ""
+    Group: Limits
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: I_MAX_CONT
+    Address: 9
+    Writeable: 0
+    Init: 14
+    Min: ""
+    Max: ""
+    Group: Limits
+    Unit: "(A)"
+    DataType: float
+    Desc: "Continuous maximum current"
+
+  # Group: Motor
+  - Variable: PPAIRS
+    Address: 10
+    Writeable: 0
+    Init: 21
+    Min: ""
+    Max: ""
+    Group: Motor
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: R_PHASE
+    Address: 13
+    Writeable: 0
+    Init: 0
+    Min: 0
+    Max: 2147483647
+    Group: System
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: PPAIRS
+    Address: 10
+    Writeable: 0
+    Init: 21
+    Min: ""
+    Max: ""
+    Group: Motor
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: R_PHASE
+    Address: 13
+    Writeable: 0
+    Init: ""
+    Min: ""
+    Max: ""
+    Group: Motor
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: KT
+    Address: 14
+    Writeable: 1
+    Init: 0.08
+    Min: 0.0001
+    Max: 2147483647.0
+    Group: Motor
+    Unit: "(Nm/A)"
+    DataType: float
+    Desc: "Motor torque constant"
+
+  - Variable: GR
+    Address: 17
+    Writeable: 1
+    Init: 6.0
+    Min: 0.001
+    Max: 2147483647.0
+    Group: Motor
+    Unit: ""
+    DataType: float
+    Desc: "Gear ratio"
+
+  - Variable: I_CAL
+    Address: 18
+    Writeable: 1
+    Init: 5.0
+    Min: 0.0
+    Max: 20.0
+    Group: Motor
+    Unit: "(A)"
+    DataType: float
+    Desc: "Calibration current"
+
+  - Variable: HALL_CAL_OFFSET
+    Address: 28
+    Writeable: 1
+    Init: 0
+    Min: 0
+    Max: 143
+    Group: Motor
+    Unit: ""
+    DataType: float
+    Desc: "Hall calibration offset"
+
+  - Variable: HALL_CAL_SPEED
+    Address: 29
+    Writeable: 1
+    Init: 0.2
+    Min: 0.0
+    Max: 10.0
+    Group: Motor
+    Unit: "(rad/s)"
+    DataType: float
+    Desc: "Hall calibration speed"
+
+  - Variable: PHASE_ORDER
+    Address: 0
+    Writeable: 0
+    Init: ""
+    Min: ""
+    Max: ""
+    Group: Motor
+    Unit: ""
+    DataType: int
+    Desc: ""
+
+  - Variable: M_ZERO
+    Address: 4
+    Writeable: 0
+    Init: 0
+    Min: ""
+    Max: ""
+    Group: Motor
+    Unit: ""
+    DataType: int
+    Desc: ""
+
+  - Variable: E_ZERO
+    Address: 5
+    Writeable: 0
+    Init: 0
+    Min: ""
+    Max: ""
+    Group: Motor
+    Unit: ""
+    DataType: int
+    Desc: ""
+
+  - Variable: HALL_CAL_DIR
+    Address: 6
+    Writeable: 1
+    Init: 1
+    Min: -1
+    Max: 1
+    Group: Motor
+    Unit: ""
+    DataType: int
+    Desc: "Hall calibration direction"
+
+  - Variable: ENCODER_LUT
+    Address: 7
+    Writeable: 0
+    Init: ""
+    Min: ""
+    Max: ""
+    Group: Motor
+    Unit: ""
+    DataType: int
+    Desc: ""
+
+  # Group: Reserved
+  - Variable: Reserved0
+    Address: 0
+    Writeable: 0
+    Init: ""
+    Min: ""
+    Max: ""
+    Group: Reserved
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: Reserved1
+    Address: 1
+    Writeable: 0
+    Init: ""
+    Min: ""
+    Max: ""
+    Group: Reserved
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: THETA_MIN
+    Address: 4
+    Writeable: 0
+    Init: ""
+    Min: ""
+    Max: ""
+    Group: Reserved
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: THETA_MAX
+    Address: 5
+    Writeable: 0
+    Init: ""
+    Min: ""
+    Max: ""
+    Group: Reserved
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: R_NOMINAL
+    Address: 7
+    Writeable: 0
+    Init: 0
+    Min: ""
+    Max: ""
+    Group: Reserved
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: Reserved11
+    Address: 11
+    Writeable: 0
+    Init: ""
+    Min: ""
+    Max: ""
+    Group: Reserved
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: Reserved12
+    Address: 12
+    Writeable: 0
+    Init: ""
+    Min: ""
+    Max: ""
+    Group: Reserved
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: R_TH
+    Address: 15
+    Writeable: 0
+    Init: ""
+    Min: ""
+    Max: ""
+    Group: Reserved
+    Unit: ""
+    DataType: float
+    Desc: ""
+
+  - Variable: C_TH
+    Address: 16
+    Writeable: 0
+    Init: ""
+    Min: ""
+    Max: ""
+    Group: Reserved
+    Unit: ""
+    DataType: float
+    Desc: ""
