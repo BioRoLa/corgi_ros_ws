@@ -3,7 +3,6 @@ import os
 import sys
 import threading
 import time
-import yaml
 from enum import IntEnum
 from collections import deque
 
@@ -17,7 +16,8 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QObject
 
 from corgi_msgs.msg import ConfigStamped
-from std_msgs.msg import Header
+
+from motor_config import MotorParameterRegistry, ConfigType
 
 # --- Enums (Matching Proto) ---
 class Module(IntEnum):
@@ -33,62 +33,6 @@ class Motor(IntEnum):
 class ConfigMode(IntEnum):
     READ = 0
     WRITE = 1
-
-class ConfigType(IntEnum):
-    INT = 0
-    FLOAT = 1
-
-# --- Parameter Manager ---
-class ParameterManager:
-    """
-    僅負責查詢參數定義 (Address, Type, Limits, Writable)。
-    完全不處理數值初始化 (Init)，數值來源僅限於 Motor。
-    """
-    def __init__(self, yaml_file='motor_parameters.yaml'):
-        self.params_by_name = {}
-        self.params_by_addr = {} # Key: (type, address)
-        self.groups = {}
-        self.load_yaml(yaml_file)
-
-    def load_yaml(self, yaml_file):
-        try:
-            with open(yaml_file, 'r') as f:
-                data = yaml.safe_load(f)
-                
-            for p in data.get('parameters', []):
-                # 判定型態
-                c_type = ConfigType.INT if p['DataType'] == 'int' else ConfigType.FLOAT
-                addr = p['Address']
-                name = p['Variable']
-                
-                param_obj = {
-                    'name': name,
-                    'addr': addr,
-                    'type': c_type,
-                    'group': p.get('Group', 'Unassigned'),
-                    # 處理 Min/Max，若為空字串則設為無限大
-                    'min': float(p.get('Min')) if p.get('Min') != "" else -float('inf'),
-                    'max': float(p.get('Max')) if p.get('Max') != "" else float('inf'),
-                    'desc': p.get('Desc', ''),
-                    'unit': p.get('Unit', ''),
-                    'writable': bool(p.get('Writeable', 0))
-                }
-                
-                self.params_by_name[name] = param_obj
-                self.params_by_addr[(c_type, addr)] = param_obj
-                
-                if param_obj['group'] not in self.groups:
-                    self.groups[param_obj['group']] = []
-                self.groups[param_obj['group']].append(param_obj)
-                
-        except Exception as e:
-            print(f"Error loading YAML: {e}")
-
-    def get_by_addr(self, c_type, addr):
-        return self.params_by_addr.get((c_type, addr))
-
-    def get_by_name(self, name):
-        return self.params_by_name.get(name)
 
 # --- ROS Worker ---
 class RosWorker(QObject):
@@ -125,9 +69,9 @@ class RosWorker(QObject):
 class ParameterTab(QWidget):
     request_write = pyqtSignal(str, object) # name, value
 
-    def __init__(self, param_manager):
+    def __init__(self, param_registry):
         super().__init__()
-        self.pm = param_manager
+        self.registry = param_registry
         self.inputs = {} # name -> QLineEdit
         self.init_ui()
 
@@ -137,15 +81,15 @@ class ParameterTab(QWidget):
         
         # 排列順序
         order = ["System", "Control", "Limits", "Motor", "Reserved"]
-        sorted_groups = sorted(self.pm.groups.keys(), key=lambda x: order.index(x) if x in order else 99)
+        sorted_groups = sorted(self.registry.get_all_groups(), key=lambda x: order.index(x) if x in order else 99)
 
         for group in sorted_groups:
             page = QWidget()
             form = QFormLayout(page)
             form.setLabelAlignment(Qt.AlignRight)
             
-            for param in self.pm.groups[group]:
-                name = param['name']
+            for param in self.registry.get_group(group):
+                name = param.name
                 
                 # 建立輸入框
                 inp = QLineEdit()
@@ -153,7 +97,7 @@ class ParameterTab(QWidget):
                 inp.setEnabled(False) # 初始鎖定，直到讀取到數值
                 
                 # 樣式設定
-                if not param['writable']:
+                if not param.writable:
                     # 唯讀參數 (灰色)
                     inp.setStyleSheet("background-color: #333; color: #aaa; border: 1px solid #444;")
                 else:
@@ -165,9 +109,9 @@ class ParameterTab(QWidget):
                 self.inputs[name] = inp
                 
                 # Label
-                label_text = f"{param['desc']} ({name})"
-                if param['unit']:
-                    label_text += f" [{param['unit']}]"
+                label_text = f"{param.description} ({name})" if param.description else name
+                if param.unit:
+                    label_text += f" [{param.unit}]"
                 
                 form.addRow(label_text, inp)
             
@@ -185,9 +129,9 @@ class ParameterTab(QWidget):
             inp = self.inputs[name]
             inp.setText(str(value))
             
-            # 只有當該參數在 YAML 定義為可寫，才解鎖讓使用者修改
-            param_def = self.pm.get_by_name(name)
-            if param_def and param_def['writable']:
+            # 只有當該參數定義為可寫，才解鎖讓使用者修改
+            param = self.registry.get_by_name(name)
+            if param and param.writable:
                 inp.setEnabled(True)
                 inp.setStyleSheet("background-color: #404040; border: 1px solid #555;")
 
@@ -197,9 +141,9 @@ class ParameterTab(QWidget):
         在讀取或寫入交易過程中，鎖定所有欄位防止干擾。
         """
         for name, inp in self.inputs.items():
-            param_def = self.pm.get_by_name(name)
+            param = self.registry.get_by_name(name)
             # 只有原本就是可寫的參數才受此控制
-            if param_def and param_def['writable']:
+            if param and param.writable:
                 inp.setEnabled(enabled)
                 if not enabled:
                      inp.setStyleSheet("background-color: #2a2a2a; color: #aaa; border: 1px solid #555;")
@@ -211,12 +155,7 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         
-        # 檢查 yaml 是否存在
-        if not os.path.exists('motor_parameters.yaml'):
-            QMessageBox.critical(self, "Error", "motor_parameters.yaml not found!")
-            sys.exit(1)
-
-        self.pm = ParameterManager('motor_parameters.yaml')
+        self.registry = MotorParameterRegistry()
         self.worker = RosWorker()
         self.seq_counter = 0
         
@@ -227,6 +166,8 @@ class MainWindow(QWidget):
         # Queue & Transaction
         self.load_queue = deque() # 存放 (Type, Address)
         self.pending_write = None # 存放正在進行的寫入交易資訊
+        self.retry_count = 0 # 重試計數器
+        self.max_retries = 3 # 最大重試次數
         
         self.init_ui()
         self.init_ros()
@@ -286,7 +227,7 @@ class MainWindow(QWidget):
         self.progress = QProgressBar()
         self.progress.setVisible(False)
         
-        self.param_widget = ParameterTab(self.pm)
+        self.param_widget = ParameterTab(self.registry)
         self.param_widget.request_write.connect(self.start_write_transaction)
         
         right_panel.addWidget(self.status_label)
@@ -357,16 +298,18 @@ class MainWindow(QWidget):
             return
 
         c_type, addr = self.load_queue[0]
+        self.retry_count = 0  # 重置重試計數
         
         # 更新進度條
         done = self.total_load_items - len(self.load_queue)
         self.progress.setValue(int((done / self.total_load_items) * 100))
 
         # 發送讀取命令 (value_f=0, value_i=0)
+        self.log(f"Reading Type={c_type.name} Addr={addr}", "DEBUG")
         self.send_config_cmd(ConfigMode.READ, c_type, addr, 0)
         
-        # 設定 200ms 超時
-        self.tx_timer.start(200)
+        # 設定 500ms 超時 (給更長時間)
+        self.tx_timer.start(500)
 
     def finish_loading(self):
         self.status_label.setText(f"Connected: Module {Module(self.current_module).name}, Motor {Motor(self.current_motor).name}")
@@ -379,19 +322,19 @@ class MainWindow(QWidget):
     # --- Write Transaction (Write -> Verify) ---
     def start_write_transaction(self, name, value_str):
         # 1. 檢查參數定義
-        param_def = self.pm.get_by_name(name)
-        if not param_def:
+        param = self.registry.get_by_name(name)
+        if not param:
             return
 
-        # 2. 驗證數值範圍 (依照 YAML 定義的 Min/Max)
+        # 2. 驗證數值範圍
         try:
-            if param_def['type'] == ConfigType.INT:
+            if param.data_type == ConfigType.INT:
                 val = int(float(value_str))
             else:
                 val = float(value_str)
             
-            if val < param_def['min'] or val > param_def['max']:
-                QMessageBox.warning(self, "Limit Error", f"Value {val} is out of range ({param_def['min']} ~ {param_def['max']})")
+            if val < param.min_value or val > param.max_value:
+                QMessageBox.warning(self, "Limit Error", f"Value {val} is out of range ({param.min_value} ~ {param.max_value})")
                 return
         except ValueError:
             QMessageBox.warning(self, "Format Error", "Invalid number format.")
@@ -405,22 +348,22 @@ class MainWindow(QWidget):
         self.pending_write = {
             'name': name,
             'target_val': val,
-            'def': param_def,
+            'param': param,
             'state': 'WAIT_WRITE_ACK'
         }
 
         # 5. 發送 WRITE 指令
         self.log(f"Writing {name} = {val}", "INFO")
-        self.send_config_cmd(ConfigMode.WRITE, param_def['type'], param_def['addr'], val)
+        self.send_config_cmd(ConfigMode.WRITE, param.data_type, param.address, val)
         self.tx_timer.start(500) # 寫入給多一點時間
 
     def handle_write_step(self, msg):
         """處理寫入流程的狀態機"""
         tx = self.pending_write
-        param_def = tx['def']
+        param = tx['param']
         
         # 檢查是否為當前操作的參數回傳
-        if ConfigType(msg.type) != param_def['type'] or msg.address != param_def['addr']:
+        if ConfigType(msg.type) != param.data_type or msg.address != param.address:
             return 
 
         if tx['state'] == 'WAIT_WRITE_ACK':
@@ -429,23 +372,23 @@ class MainWindow(QWidget):
             tx['state'] = 'WAIT_READ_VERIFY'
             
             # 發送 Read 指令
-            self.send_config_cmd(ConfigMode.READ, param_def['type'], param_def['addr'], 0)
+            self.send_config_cmd(ConfigMode.READ, param.data_type, param.address, 0)
             self.tx_timer.start(500)
             
         elif tx['state'] == 'WAIT_READ_VERIFY':
             # 收到 Read 的結果，比對數值
-            received_val = msg.value_i if param_def['type'] == ConfigType.INT else msg.value_f
+            received_val = msg.value_i if param.data_type == ConfigType.INT else msg.value_f
             target_val = tx['target_val']
             
             is_match = False
-            if param_def['type'] == ConfigType.INT:
+            if param.data_type == ConfigType.INT:
                 is_match = (received_val == int(target_val))
             else:
                 is_match = abs(received_val - float(target_val)) < 0.001
             
             if is_match:
-                self.log(f"Write Success: {param_def['name']} confirmed as {received_val}", "SUCCESS")
-                self.param_widget.update_field_from_motor(param_def['name'], received_val)
+                self.log(f"Write Success: {param.name} confirmed as {received_val}", "SUCCESS")
+                self.param_widget.update_field_from_motor(param.name, received_val)
                 self.end_transaction(success=True)
             else:
                 self.log(f"Verification Failed! Expected {target_val}, got {received_val}", "ERROR")
@@ -463,9 +406,9 @@ class MainWindow(QWidget):
         self.seq_counter += 1
         
         msg = ConfigStamped()
-        msg.header = Header()
         msg.header.seq = self.seq_counter
         msg.header.stamp = self.worker.node.get_clock().now().to_msg()
+        msg.header.frame_id = ''
         
         msg.transmit = True
         msg.module = int(self.current_module)
@@ -487,23 +430,27 @@ class MainWindow(QWidget):
     def handle_ros_msg(self, msg):
         """ROS 回調主入口"""
         
+        # Debug: Log all incoming messages
+        self.log(f"Received: seq={msg.header.seq} (expect {self.seq_counter}), type={msg.type}, addr={msg.address}, val_i={msg.value_i}, val_f={msg.value_f}", "DEBUG")
+        
         # 1. 處理讀取隊列 (Scanning)
         if self.load_queue:
             req_type, req_addr = self.load_queue[0]
             
-            # 檢查 SEQ 以及 Type/Addr 是否匹配
-            if msg.header.seq == self.seq_counter and \
-               msg.type == int(req_type) and \
-               msg.address == req_addr:
+            # 檢查 Type/Addr 是否匹配 (放寬 SEQ 檢查，只要 Type/Addr 對就接受)
+            if msg.type == int(req_type) and msg.address == req_addr:
                
                 self.tx_timer.stop()
                 self.load_queue.popleft() # 移除已完成的任務
                 
-                # 查表 YAML 更新 UI
-                param_def = self.pm.get_by_addr(ConfigType(msg.type), msg.address)
-                if param_def:
-                    val = msg.value_i if msg.type == int(ConfigType.INT) else msg.value_f
-                    self.param_widget.update_field_from_motor(param_def['name'], val)
+                # 查表更新 UI
+                param = self.registry.get_by_type_and_address(req_type, req_addr)
+                if param:
+                    val = msg.value_i if req_type == ConfigType.INT else msg.value_f
+                    self.param_widget.update_field_from_motor(param.name, val)
+                    self.log(f"✓ Read {param.name} = {val}", "SUCCESS")
+                else:
+                    self.log(f"Warning: No param for Type={req_type} Addr={req_addr}", "WARN")
                 
                 # 繼續下一個
                 self.process_load_queue()
@@ -511,17 +458,29 @@ class MainWindow(QWidget):
 
         # 2. 處理寫入交易 (Write Transaction)
         if self.pending_write:
-            if msg.header.seq == self.seq_counter:
+            # Check if this message matches our pending write operation
+            param = self.pending_write['param']
+            if msg.type == param.data_type and msg.address == param.address:
                 self.tx_timer.stop()
                 self.handle_write_step(msg)
             return
 
     def handle_timeout(self):
         if self.load_queue:
-            # 讀取超時，跳過該參數
-            skipped = self.load_queue.popleft()
-            self.log(f"Timeout reading Type {skipped[0].name} Addr {skipped[1]}. Skipping.", "WARN")
-            self.process_load_queue()
+            # 讀取超時，重試或跳過
+            if self.retry_count < self.max_retries:
+                self.retry_count += 1
+                c_type, addr = self.load_queue[0]
+                self.log(f"Timeout reading Type {c_type.name} Addr {addr}. Retry {self.retry_count}/{self.max_retries}", "WARN")
+                # 重新發送當前請求
+                self.send_config_cmd(ConfigMode.READ, c_type, addr, 0)
+                self.tx_timer.start(500)  # 給更長的超時時間
+            else:
+                # 超過重試次數，跳過
+                skipped = self.load_queue.popleft()
+                self.log(f"Failed to read Type {skipped[0].name} Addr {skipped[1]} after {self.max_retries} retries. Skipping.", "ERROR")
+                self.retry_count = 0
+                self.process_load_queue()
             
         elif self.pending_write:
             self.log("Write operation timed out.", "ERROR")

@@ -14,7 +14,7 @@ def generate_launch_description() -> LaunchDescription:
     
     # Build path to source script
     script_path = os.path.join(
-        workspace_root, 'src', 'corgi_panel', 'scripts', 'corgi_control_panel_dev.py'
+        workspace_root, 'src', 'corgi_panel', 'scripts', 'corgi_config_panel_dev.py'
     )
     
     return LaunchDescription([
