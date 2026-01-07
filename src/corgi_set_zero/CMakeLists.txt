@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(corgi_rt_control)
+project(corgi_set_zero)
 
 # Compiler options
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
