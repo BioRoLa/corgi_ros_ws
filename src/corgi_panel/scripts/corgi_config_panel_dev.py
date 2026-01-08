@@ -12,7 +12,7 @@ from rclpy.executors import SingleThreadedExecutor
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QComboBox, QGroupBox, QLineEdit, 
                              QTabWidget, QFormLayout, QMessageBox, QTextEdit, 
-                             QProgressBar)
+                             QProgressBar, QPushButton)
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer, QObject
 
 from corgi_msgs.msg import ConfigStamped
@@ -285,7 +285,7 @@ class MainWindow(QWidget):
         """Initialize ROS worker and connect signals"""
         self.worker.msg_received.connect(self.handle_ros_msg)
         self.worker.start_ros()
-        self.log("System Ready.", "SYSTEM")
+        self.log("System Ready.", "INFO")
 
     def log(self, msg, level="INFO"):
         """Add colored log entry with timestamp"""
