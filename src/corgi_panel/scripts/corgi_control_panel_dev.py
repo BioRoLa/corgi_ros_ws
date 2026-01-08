@@ -565,7 +565,7 @@ class CorgiControlPanel(QWidget):
                 self.btn_standby.setEnabled(current == ROBOTMODE.IDLE)
                 
                 # Config Button: can enter from 0, 2
-                self.btn_motorconfig.setEnabled(current in [ROBOTMODE.SYSTEM_ON, ROBOTMODE.IDLE])
+                self.btn_motorconfig.setEnabled(current in [ROBOTMODE.SYSTEM_ON, ROBOTMODE.IDLE, ROBOTMODE.MOTORCONFIG])
 
     def select_csv_file(self):
         file_name, _ = QFileDialog.getOpenFileName(
