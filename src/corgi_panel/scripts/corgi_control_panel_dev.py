@@ -73,7 +73,7 @@ QPushButton#EstopBtn { background-color: #d32f2f; font-weight: bold; font-size: 
 QPushButton#EstopBtn:hover { background-color: #b71c1c; }
 QPushButton#EstopBtn:pressed { background-color: #8e0000; }
 
-QPushButton#SystemOnBtn:checked { background-color: #2e7d32; } /* Green for ON */
+QPushButton#RestBtn:checked { background-color: #2e7d32; } /* Green for ON */
 QPushButton#ConfigBtn:checked { background-color: #f9a825; color: black; } /* Yellow for Config */
 
 QLabel#HeaderLabel { font-size: 18px; font-weight: bold; color: #eee; }
@@ -115,18 +115,18 @@ class CorgiControlPanel(QWidget):
         self.process_recorder = None  # Track data recorder process
         self.process_imu = None  # Track IMU process
         self.process_set_zero = None  # Track set_zero process
+        self.process_csv = None  # Track CSV control process
 
         self.reset()
 
     def init_ui(self):
         self.setStyleSheet(STYLESHEET)
         
-        # 主佈局
         main_v_layout = QVBoxLayout()
         main_v_layout.setSpacing(10)
         main_v_layout.setContentsMargins(15, 15, 15, 15)
         
-        # --- Top Bar ---
+        # Top Bar
         top_bar = QHBoxLayout()
 
         # Power summary (top-left)
@@ -146,39 +146,31 @@ class CorgiControlPanel(QWidget):
         power_box.addWidget(self.lbl_power)
         top_bar.addLayout(power_box)
 
-        self.btn_estop = QPushButton('EMERGENCY STOP')
+        # E-Stop Button (top-right)
+        self.btn_estop = QPushButton('E-STOP')
         self.btn_estop.setObjectName("EstopBtn")
-        self.btn_estop.setMinimumWidth(200)
+        self.btn_estop.setMinimumWidth(100)
         self.btn_estop.setMinimumHeight(50)
         self.btn_estop.clicked.connect(self.e_stop_cmd)
-        
-        top_bar.addStretch(1) # 讓 E-Stop 靠右
+        top_bar.addStretch(1)
         top_bar.addWidget(self.btn_estop)
         main_v_layout.addLayout(top_bar)
         
-        # --- Middle Section ---
+        # Middle Area
         middle_layout = QHBoxLayout()
-        sidebar = QVBoxLayout()
-        sidebar.setSpacing(15)
+        
+        # Left sidebar - FSM Control
+        sidebar_left = QVBoxLayout()
+        sidebar_left.setSpacing(15)
         
         # 1. ROS Bridge
         self.btn_ros_bridge = QPushButton('Run ROS Bridge')
         self.btn_ros_bridge.setCheckable(True)
         self.btn_ros_bridge.clicked.connect(self.ros_bridge_cmd)
-        sidebar.addWidget(self.btn_ros_bridge)
+        sidebar_left.addWidget(self.btn_ros_bridge)
         
-        # 2. IMU & Set Zero
-        self.btn_imu = QPushButton('IMU')
-        self.btn_imu.setCheckable(True)
-        self.btn_imu.clicked.connect(self.imu_cmd)
-        sidebar.addWidget(self.btn_imu)
-
-        self.btn_set_zero = QPushButton('Set Zero')
-        self.btn_set_zero.clicked.connect(self.set_zero_cmd)
-        sidebar.addWidget(self.btn_set_zero)
-
-        # 3. FSM Control + Current Mode (Merged)
-        grp_fsm = QGroupBox("FSM Indicator")
+        # 2. FSM Control + Current Mode (Merged)
+        grp_fsm = QGroupBox("FSM")
         grp_fsm_layout = QVBoxLayout()
         
         # Current Mode Display
@@ -199,10 +191,10 @@ class CorgiControlPanel(QWidget):
         grp_fsm_layout.addWidget(mode_container)
 
         # FSM Buttons
-        self.btn_system = QPushButton('Set to REST')
-        self.btn_system.setObjectName("SystemOnBtn")
-        self.btn_system.setCheckable(True)
-        self.btn_system.clicked.connect(self.system_cmd)
+        self.btn_rest = QPushButton('Set to REST')
+        self.btn_rest.setObjectName("RestBtn")
+        self.btn_rest.setCheckable(True)
+        self.btn_rest.clicked.connect(self.set_rest_mode)
         
         self.btn_idle = QPushButton('Set to IDLE')
         self.btn_idle.clicked.connect(self.set_idle_mode)
@@ -214,29 +206,74 @@ class CorgiControlPanel(QWidget):
         self.btn_motorconfig.setObjectName("ConfigBtn")
         self.btn_motorconfig.clicked.connect(self.set_motorconfig_mode)
         
-        grp_fsm_layout.addWidget(self.btn_system)
+        grp_fsm_layout.addWidget(self.btn_rest)
         grp_fsm_layout.addWidget(self.btn_idle)
         grp_fsm_layout.addWidget(self.btn_standby)
         grp_fsm_layout.addWidget(self.btn_motorconfig)
         grp_fsm.setLayout(grp_fsm_layout)
-        sidebar.addWidget(grp_fsm)
-
-        # 4. Recorder
-        grp_rec = QGroupBox("Data Recorder")
+        sidebar_left.addWidget(grp_fsm)
+        
+        # Set Zero button
+        self.btn_set_zero = QPushButton('Set Zero')
+        self.btn_set_zero.clicked.connect(self.set_zero_cmd)
+        sidebar_left.addWidget(self.btn_set_zero)
+        
+        sidebar_left.addStretch(1)
+        
+        # Middle sidebar - CSV, Recorder, Set Zero, IMU
+        sidebar_middle = QVBoxLayout()
+        sidebar_middle.setSpacing(15)
+        
+        # 1. CSV Control
+        grp_csv = QGroupBox("CSV Control")
+        grp_csv_layout = QVBoxLayout()
+        
+        self.label_csv = QLabel('Input File Name (.csv):')
+        self.label_csv.setStyleSheet('color: #aaa; font-size: 12px;')
+        
+        self.edit_csv = QLineEdit()
+        self.edit_csv.setPlaceholderText("Select or enter CSV file path")
+        
+        csv_btn_layout = QHBoxLayout()
+        self.btn_csv_select = QPushButton('Select')
+        self.btn_csv_select.clicked.connect(self.select_csv_file)
+        
+        self.btn_csv_run = QPushButton('Run')
+        self.btn_csv_run.setCheckable(True)
+        self.btn_csv_run.clicked.connect(self.csv_control_cmd)
+        
+        csv_btn_layout.addWidget(self.btn_csv_select)
+        csv_btn_layout.addWidget(self.btn_csv_run)
+        
+        grp_csv_layout.addWidget(self.label_csv)
+        grp_csv_layout.addWidget(self.edit_csv)
+        grp_csv_layout.addLayout(csv_btn_layout)
+        grp_csv.setLayout(grp_csv_layout)
+        sidebar_middle.addWidget(grp_csv)
+        
+        # 2. Trigger and Data Recorder
+        grp_rec = QGroupBox("Recorder")
         grp_rec_layout = QVBoxLayout()
+
         self.edit_output = QLineEdit()
-        self.edit_output.setPlaceholderText("File Name (.csv)")
+        self.edit_output.setPlaceholderText("Text File Name (.csv)")
         self.edit_output.returnPressed.connect(self.start_recording_from_input)
         self.btn_trigger = QPushButton('Start Trigger')
         self.btn_trigger.setCheckable(True)
         self.btn_trigger.clicked.connect(self.publish_trigger_cmd)
-        
+
         grp_rec_layout.addWidget(self.edit_output)
         grp_rec_layout.addWidget(self.btn_trigger)
         grp_rec.setLayout(grp_rec_layout)
-        sidebar.addWidget(grp_rec)
+        sidebar_middle.addWidget(grp_rec)
         
-        sidebar.addStretch(1)
+        # IMU button
+        self.btn_imu = QPushButton('IMU')
+        self.btn_imu.setCheckable(True)
+        self.btn_imu.clicked.connect(self.imu_cmd)
+        sidebar_middle.addWidget(self.btn_imu)
+        
+        sidebar_middle.addStretch(1)
         
         # Right Monitor Area (Only Motor Grid Now)
         monitor_layout = QVBoxLayout()
@@ -260,15 +297,17 @@ class CorgiControlPanel(QWidget):
         monitor_layout.addLayout(grid_motors)
         monitor_layout.addStretch(1)
 
-        middle_layout.addLayout(sidebar, 1)
+        middle_layout.addLayout(sidebar_left, 1)
+        middle_layout.addLayout(sidebar_middle, 1)
         middle_layout.addLayout(monitor_layout, 3)
         main_v_layout.addLayout(middle_layout)
         
-        log_group = QGroupBox("System Log")
+        # Log Area
+        log_group = QGroupBox("Log")
         log_layout_inner = QVBoxLayout()
         self.text_log = QTextEdit()
         self.text_log.setReadOnly(True)
-        self.text_log.setMaximumHeight(150)
+        self.text_log.setMaximumHeight(400)
         log_layout_inner.addWidget(self.text_log)
         log_group.setLayout(log_layout_inner)
         main_v_layout.addWidget(log_group)
@@ -277,15 +316,17 @@ class CorgiControlPanel(QWidget):
         self.setWindowTitle('Corgi Control Panel')
         self.resize(1024, 768)
         
-        # 初始化按鈕狀態：只有 ros_bridge 可用
+        # Initial button states
         self.btn_estop.setEnabled(False)
         self.btn_imu.setEnabled(False)
         self.btn_set_zero.setEnabled(False)
-        self.btn_system.setEnabled(False)
+        self.btn_rest.setEnabled(False)
         self.btn_idle.setEnabled(False)
         self.btn_standby.setEnabled(False)
         self.btn_motorconfig.setEnabled(False)
         self.btn_trigger.setEnabled(False)
+        self.btn_csv_select.setEnabled(False)
+        self.btn_csv_run.setEnabled(False)
         
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.timer_update)
@@ -313,7 +354,7 @@ class CorgiControlPanel(QWidget):
         self.robot_state = RobotStateStamped()
         self.motor_state = MotorStateStamped()
         self.log_state = LogStamped()
-        self.add_log('[SYSTEM] Control Panel Initialized', 'INFO')
+        self.add_log('Control Panel Initialized', 'INFO')
 
     def ros_bridge_cmd(self):        
         if self.btn_ros_bridge.isChecked():
@@ -324,7 +365,7 @@ class CorgiControlPanel(QWidget):
                     return
                 # Launch the ROS2 bridge executable directly
                 self.process_bridge = subprocess.Popen(['ros2', 'run', 'corgi_ros_bridge', 'corgi_ros_bridge'])
-                self.add_log('ROS Bridge Started (ros2 run corgi_ros_bridge corgi_ros_bridge)', 'SYSTEM')
+                self.add_log('ROS Bridge Started', 'INFO')
             except Exception as e:
                 self.add_log(f'Failed to start ROS Bridge: {e}', 'ERROR')
         else:
@@ -336,13 +377,13 @@ class CorgiControlPanel(QWidget):
                     try:
                         self.process_bridge.send_signal(signal.SIGINT)
                         ret = self.process_bridge.wait(timeout=2.0)
-                        self.add_log(f'ROS Bridge Stopped (code {ret})', 'SYSTEM')
+                        self.add_log(f'ROS Bridge Stopped (code {ret})', 'WARN')
                     except subprocess.TimeoutExpired:
                         self.add_log('ROS Bridge did not exit, terminating...', 'WARN')
                         self.process_bridge.terminate()
                         try:
                             ret = self.process_bridge.wait(timeout=2.0)
-                            self.add_log(f'ROS Bridge Terminated (code {ret})', 'SYSTEM')
+                            self.add_log(f'ROS Bridge Terminated (code {ret})', 'WARN')
                         except subprocess.TimeoutExpired:
                             self.add_log('ROS Bridge still alive, killing...', 'ERROR')
                             self.process_bridge.kill()
@@ -352,7 +393,7 @@ class CorgiControlPanel(QWidget):
                         self.btn_ros_bridge.setEnabled(True)
                 threading.Thread(target=_stop, daemon=True).start()
             else:
-                self.add_log('ROS Bridge Stopped', 'SYSTEM')
+                self.add_log('ROS Bridge Stopped', 'INFO')
         self.set_btn_enable()
 
     def imu_cmd(self):
@@ -362,27 +403,25 @@ class CorgiControlPanel(QWidget):
                 if hasattr(self, 'process_imu') and self.process_imu is not None and self.process_imu.poll() is None:
                     self.add_log('IMU already running; skip start', 'WARN')
                     return
-                # Launch the IMU node using ros2 run
                 self.process_imu = subprocess.Popen(['ros2', 'run', 'corgi_imu', 'imu_node'])
-                self.add_log('IMU Started (ros2 run corgi_imu imu_node)', 'SYSTEM')
+                self.add_log('IMU Started', 'INFO')
             except Exception as e:
                 self.add_log(f'Failed to start IMU: {e}', 'ERROR')
         else:
             self.btn_imu.setText('IMU')
             if hasattr(self, 'process_imu') and self.process_imu is not None:
-                self.btn_imu.setEnabled(False)  # avoid double clicks while stopping
-                # Stop in background to avoid freezing UI
+                self.btn_imu.setEnabled(False)
                 def _stop():
                     try:
                         self.process_imu.send_signal(signal.SIGINT)
                         ret = self.process_imu.wait(timeout=2.0)
-                        self.add_log(f'IMU Stopped (code {ret})', 'SYSTEM')
+                        self.add_log(f'IMU Stopped (code {ret})', 'WARN')
                     except subprocess.TimeoutExpired:
                         self.add_log('IMU did not exit, terminating...', 'WARN')
                         self.process_imu.terminate()
                         try:
                             ret = self.process_imu.wait(timeout=2.0)
-                            self.add_log(f'IMU Terminated (code {ret})', 'SYSTEM')
+                            self.add_log(f'IMU Terminated (code {ret})', 'WARN')
                         except subprocess.TimeoutExpired:
                             self.add_log('IMU still alive, killing...', 'ERROR')
                             self.process_imu.kill()
@@ -392,18 +431,14 @@ class CorgiControlPanel(QWidget):
                         self.btn_imu.setEnabled(True)
                 threading.Thread(target=_stop, daemon=True).start()
             else:
-                self.add_log('IMU Stopped', 'SYSTEM')
+                self.add_log('IMU Stopped', 'INFO')
 
     def set_zero_cmd(self):
-        """Run set_zero command to reset motor reference zero points"""
-        # Disable button immediately to prevent double clicks
         self.btn_set_zero.setEnabled(False)
         self.btn_set_zero.setText('Setting Zero...')
-        
         try:
-            # Launch set_zero as a background process
             self.process_set_zero = subprocess.Popen(['ros2', 'run', 'corgi_set_zero', 'set_zero'])
-            self.add_log('Set Zero Started (ros2 run corgi_set_zero set_zero)', 'SYSTEM')
+            self.add_log('Set Zero Started', 'INFO')
         except Exception as e:
             self.add_log(f'Failed to start set_zero: {e}', 'ERROR')
             self.btn_set_zero.setEnabled(True)
@@ -415,14 +450,25 @@ class CorgiControlPanel(QWidget):
         robot_cmd.header.seq = self._robot_cmd_seq + 1
         robot_cmd.header.stamp = self.node.get_clock().now().to_msg()
         robot_cmd.header.frame_id = ''
-        robot_cmd.request_robot_mode = int(ROBOTMODE.IDLE)  # [2] 強制回 IDLE
+        
+        # E-stop logic based on current robot state
+        current = self.robot_state.robot_mode if hasattr(self.robot_state, 'robot_mode') else -1
+        if current == ROBOTMODE.STANDBY:
+            # When in STANDBY (3), e-stop sends IDLE (2)
+            robot_cmd.request_robot_mode = int(ROBOTMODE.IDLE)
+            self._pending_robot_mode = int(ROBOTMODE.IDLE)
+            self.add_log('E-Stop: STANDBY -> IDLE', 'WARN')
+        else:
+            # When in SYSTEM_ON (0) or transitioning to IDLE, e-stop sends SYSTEM_ON (0)
+            robot_cmd.request_robot_mode = int(ROBOTMODE.SYSTEM_ON)
+            self._pending_robot_mode = int(ROBOTMODE.SYSTEM_ON)
+            self.add_log('E-Stop: -> SYSTEM_ON', 'WARN')
+        
         self.robot_cmd_pub.publish(robot_cmd)
         self._robot_cmd_seq += 1
-        self._pending_robot_mode = int(ROBOTMODE.IDLE)
         self.set_btn_enable()
-    
-    # 使用 Enum 發送命令
-    def system_cmd(self): self._pub_robot_mode(ROBOTMODE.SYSTEM_ON)
+
+    def set_rest_mode(self): self._pub_robot_mode(ROBOTMODE.SYSTEM_ON)
     def set_idle_mode(self): self._pub_robot_mode(ROBOTMODE.IDLE)
     def set_standby_mode(self): self._pub_robot_mode(ROBOTMODE.STANDBY)
     def set_motorconfig_mode(self): self._pub_robot_mode(ROBOTMODE.MOTORCONFIG)
@@ -436,18 +482,17 @@ class CorgiControlPanel(QWidget):
         self.robot_cmd_pub.publish(robot_cmd)
         self._robot_cmd_seq += 1
         self._pending_robot_mode = int(mode)
-        self.add_log(f'Sent Robot Mode Command: {mode.name} ({mode.value}), seq={self._robot_cmd_seq}', 'SYSTEM')
-        # Disable buttons until state matches the requested mode
+        self.add_log(f'Sent Robot Mode Command: {mode.name} ({mode.value}), seq={self._robot_cmd_seq}', 'INFO')
         self.set_btn_enable()
 
+    
     def start_recording_from_input(self):
-        """Start recording when user presses Enter in the filename input field"""
         filename = self.edit_output.text().strip()
         if filename and not self.btn_trigger.isChecked():
             self.btn_trigger.setChecked(True)
             self.publish_trigger_cmd()
         elif not filename:
-            self.add_log('Please enter a filename before recording', 'WARN')
+            self.add_log('No filename entered', 'WARN')
         else:
             self.add_log('Recording already in progress', 'WARN')
 
@@ -472,57 +517,115 @@ class CorgiControlPanel(QWidget):
 
     def set_btn_enable(self):
         bridge_on = self.btn_ros_bridge.isChecked()
-        
-        # E-Stop, IMU, Set Zero：ROS Bridge 啟動後始終可用
         self.btn_estop.setEnabled(bridge_on)
         self.btn_imu.setEnabled(bridge_on)
-        self.btn_set_zero.setEnabled(bridge_on)
         self.btn_trigger.setEnabled(bridge_on)
+        self.btn_csv_select.setEnabled(bridge_on)
+        self.btn_csv_run.setEnabled(bridge_on)
         
-        # 使用 Enum 判斷當前模式
+        # Set zero button only enabled when robot state is STANDBY (3)
+        current = self.robot_state.robot_mode if hasattr(self.robot_state, 'robot_mode') else -1
+        self.btn_set_zero.setEnabled(bridge_on and current == ROBOTMODE.STANDBY)
+
         current = self.robot_state.robot_mode if hasattr(self.robot_state, 'robot_mode') else -1
         
-        # 定義拓樸邏輯:
+        # FSM Transition Logic:
         # 0 <=> 2  (SYSTEM_ON <=> IDLE)
         # 0 <=> 4  (SYSTEM_ON <=> MOTORCONFIG)
         # 2 <=> 3  (IDLE <=> STANDBY)
-        # 2 <=> 4  (IDLE <=> MOTORCONFIG)
+        # 2  -> 4  (IDLE -> MOTORCONFIG)
         
         if not bridge_on:
-            # ROS Bridge 未啟動：所有FSM按鈕禁用
-            self.btn_system.setEnabled(False)
+            self.btn_rest.setEnabled(False)
             self.btn_idle.setEnabled(False)
             self.btn_standby.setEnabled(False)
             self.btn_motorconfig.setEnabled(False)
         else:
-            # ROS Bridge 已啟動
+            # ROS Bridge is ON
             if current == -1:
-                # 尚未收到狀態：啟用 Idle 和 Config 作為初始選項
-                self.btn_system.setEnabled(False)
+                # No state yet: only Idle and Config are enabled as initial options
+                self.btn_rest.setEnabled(False)
                 self.btn_idle.setEnabled(True)
                 self.btn_standby.setEnabled(False)
                 self.btn_motorconfig.setEnabled(True)
             else:
-                # 根據當前模式決定可用的轉換
-                # System ON (0): 可去 2(IDLE) 或 4(CONFIG)
-                # IDLE (2): 可去 0(SYSTEM_ON), 3(STANDBY), 4(CONFIG)
-                # STANDBY (3): 可去 2(IDLE)
-                # CONFIG (4): 可去 0(SYSTEM_ON), 2(IDLE)
+                # Determine available transitions based on current mode
+                # System ON (0): can go to 2(IDLE) or 4(CONFIG)
+                # IDLE (2): can go to 0(SYSTEM_ON), 3(STANDBY), 4(CONFIG)
+                # STANDBY (3): can go to 2(IDLE)
+                # CONFIG (4): can go to 0(SYSTEM_ON), 2(IDLE)
                 
-                # System ON Button: 從 2, 4 可以進入；從 0 可以退出(去2)
-                self.btn_system.setEnabled(current in [ROBOTMODE.IDLE, ROBOTMODE.MOTORCONFIG])
+                # System ON Button: can enter from 2, 4; can exit from 0 (to 2)
+                self.btn_rest.setEnabled(current in [ROBOTMODE.IDLE, ROBOTMODE.MOTORCONFIG])
                 
-                # Idle Button: 從 0, 3, 4 可以進入
-                self.btn_idle.setEnabled(current in [ROBOTMODE.SYSTEM_ON, ROBOTMODE.STANDBY, ROBOTMODE.MOTORCONFIG])
+                # Idle Button: can enter from 0, 3
+                self.btn_idle.setEnabled(current in [ROBOTMODE.SYSTEM_ON, ROBOTMODE.STANDBY])
                 
-                # Standby Button: 只能從 2(IDLE) 進入
+                # Standby Button: can enter from 2
                 self.btn_standby.setEnabled(current == ROBOTMODE.IDLE)
                 
-                # Config Button: 從 0, 2 可以進入
+                # Config Button: can enter from 0, 2
                 self.btn_motorconfig.setEnabled(current in [ROBOTMODE.SYSTEM_ON, ROBOTMODE.IDLE])
 
+    def select_csv_file(self):
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select CSV File",
+            "/home/biorola/corgi_ws/corgi_ros_ws/input_csv",
+            "CSV Files (*.csv);;All Files (*)"
+        )
+        if file_name:
+            self.edit_csv.setText(file_name)
+            self.add_log(f'Selected CSV file: {file_name}', 'INFO')
+    
+    def csv_control_cmd(self):
+        if self.btn_csv_run.isChecked():
+            self.btn_csv_run.setText('Stop')
+            csv_file = self.edit_csv.text().strip()
+            if not csv_file:
+                self.add_log('No CSV file selected', 'WARN')
+                self.btn_csv_run.setChecked(False)
+                self.btn_csv_run.setText('Run')
+                return
+            try:
+                if hasattr(self, 'process_csv') and self.process_csv is not None and self.process_csv.poll() is None:
+                    self.add_log('CSV Control already running; skip start', 'WARN')
+                    return
+                self.process_csv = subprocess.Popen(['ros2', 'run', 'corgi_csv_control', 'corgi_csv_control', csv_file])
+                self.add_log(f'CSV Control Started with file: {csv_file}', 'INFO')
+            except Exception as e:
+                self.add_log(f'Failed to start CSV Control: {e}', 'ERROR')
+                self.btn_csv_run.setChecked(False)
+                self.btn_csv_run.setText('Run')
+        else:
+            self.btn_csv_run.setText('Run')
+            if hasattr(self, 'process_csv') and self.process_csv is not None:
+                self.btn_csv_run.setEnabled(False)
+                def _stop():
+                    try:
+                        self.process_csv.send_signal(signal.SIGINT)
+                        ret = self.process_csv.wait(timeout=2.0)
+                        self.add_log(f'CSV Control Stopped (code {ret})', 'WARN')
+                    except subprocess.TimeoutExpired:
+                        self.add_log('CSV Control did not exit, terminating...', 'WARN')
+                        self.process_csv.terminate()
+                        try:
+                            ret = self.process_csv.wait(timeout=2.0)
+                            self.add_log(f'CSV Control Terminated (code {ret})', 'WARN')
+                        except subprocess.TimeoutExpired:
+                            self.add_log('CSV Control still alive, killing...', 'ERROR')
+                            self.process_csv.kill()
+                            self.process_csv.wait()
+                    finally:
+                        self.process_csv = None
+                        self.btn_csv_run.setEnabled(True)
+                threading.Thread(target=_stop, daemon=True).start()
+            else:
+                self.add_log('CSV Control Stopped', 'INFO')
+        self.set_btn_enable()
+
     def reset(self):
-        self.btn_system.setChecked(False)
+        self.btn_rest.setChecked(False)
         self.btn_trigger.setChecked(False)
         self.publish_trigger_cmd()
 
@@ -533,23 +636,10 @@ class CorgiControlPanel(QWidget):
 
     def _handle_power_state_update(self, state):
         self.power_state = state
-        # Update power badges
-        try:
-            v_total = float(getattr(state, 'v_0', 0.0))
-        except Exception:
-            v_total = 0.0
-
-        try:
-            i_total = float(getattr(state, 'i_1', 0.0))
-        except Exception:
-            i_total = 0.0
-        # i_total = 0.0
-        # for idx in range(1, 12):
-        #     val = getattr(state, f'i_{idx}', 0.0)
-        #     try:
-        #         i_total += float(val)
-        #     except Exception:
-        #         pass
+        try: v_total = float(getattr(state, 'v_0', 0.0))  
+        except Exception: v_total = 0.0
+        try: i_total = float(getattr(state, 'i_1', 0.0))  
+        except Exception: i_total = 0.0
         soc = self._soc_from_voltage(v_total)
         self.lbl_voltage.setText(f"{v_total:.1f} V")
         self.lbl_soc.setText(f"{soc:.0f} %")
@@ -564,29 +654,22 @@ class CorgiControlPanel(QWidget):
         if V_MAX <= V_MIN:
             return 0.0
         soc = (v_total - V_MIN) / (V_MAX - V_MIN) * 100.0
-        if soc > 100.0:
-            soc = 100.0
-        if soc < 0.0:
-            soc = 0.0
+        if soc > 100.0: soc = 100.0
+        if soc < 0.0: soc = 0.0
         return soc
 
     def _handle_log_update(self, log_msg):
-        """Handle incoming log messages from lower-level systems"""
         self.log_state = log_msg
-        
-        # Extract log information
         level = log_msg.level
         node_name = log_msg.node_name if hasattr(log_msg, 'node_name') else 'unknown'
         message = log_msg.message if hasattr(log_msg, 'message') else ''
-        
-        # Convert timestamp
+
         if hasattr(log_msg.header, 'stamp'):
             stamp = log_msg.header.stamp
             timestamp = datetime.fromtimestamp(stamp.sec + stamp.nanosec / 1e9).strftime('%Y-%m-%d %H:%M:%S.%f')
         else:
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-        
-        # Map level to name and color
+
         level_map = {
             LOGLEVEL.DEBUG: ('DEBUG', '#2196f3'),  # BLUE
             LOGLEVEL.INFO: ('INFO ', '#00e676'),   # GREEN
@@ -596,8 +679,7 @@ class CorgiControlPanel(QWidget):
         }
         
         level_name, color = level_map.get(level, ('UNKNOWN', '#ffffff'))
-        
-        # Format and display log with color
+
         log_html = f'<span style="color:#888;">[{timestamp}]</span> '
         log_html += f'<span style="color:{color}; font-weight:bold;">[{level_name}]</span> '
         log_html += f'<span style="color:#aaa;">[{node_name}]</span> '
@@ -605,36 +687,30 @@ class CorgiControlPanel(QWidget):
         
         self.text_log.append(log_html)
         self.text_log.verticalScrollBar().setValue(self.text_log.verticalScrollBar().maximum())
-        
-        # Check if set_zero has completed
+
         if node_name == 'corgi_set_zero' and 'Set Zero Completed' in message:
             self._on_set_zero_completed()
         
-        # Handle ERROR and FATAL: clear pending mode as lower system reverted
         if level in [LOGLEVEL.ERROR, LOGLEVEL.FATAL]:
             if self._pending_robot_mode is not None:
                 reverted_mode = ROBOTMODE(self._pending_robot_mode).name if self._pending_robot_mode in ROBOTMODE.__members__.values() else str(self._pending_robot_mode)
-                self.add_log(f'[SYSTEM] Command to {reverted_mode} failed - system reverted', 'WARN')
+                self.add_log(f'Command to {reverted_mode} failed - system reverted', 'WARN')
                 self._pending_robot_mode = None
                 self.set_btn_enable()
     
     def _handle_robot_state_update(self, state):
         self.robot_state = state
         current_mode = int(state.robot_mode)
-        
-        # Clear pending command once state matches
+
         if self._pending_robot_mode is not None and current_mode == int(self._pending_robot_mode):
-            self.add_log(f'[SYSTEM] Robot mode reached: {ROBOTMODE(self._pending_robot_mode).name} ({self._pending_robot_mode})', 'INFO')
+            self.add_log(f'Robot mode reached: {ROBOTMODE(self._pending_robot_mode).name} ({self._pending_robot_mode})', 'INFO')
             self._pending_robot_mode = None
             
-            # Launch config panel when entering MOTORCONFIG mode
             if current_mode == ROBOTMODE.MOTORCONFIG:
                 self.launch_config_panel()
         
-        # Update last confirmed mode
         self._last_confirmed_mode = current_mode
         
-        # 使用 Enum 更新 UI 顯示
         try:
             mode_enum = ROBOTMODE(state.robot_mode)
             mode_text = mode_enum.name
@@ -671,50 +747,40 @@ class CorgiControlPanel(QWidget):
                     else: self.motor_labels[key].setStyleSheet("color: #aaa;")
 
     def launch_config_panel(self):
-        """Launch the config panel when entering MOTORCONFIG mode"""
         try:
-            # Check if config panel is already running
             if hasattr(self, 'process_config') and self.process_config is not None and self.process_config.poll() is None:
                 self.add_log('Config Panel already running', 'WARN')
                 return
             
-            # Get the path to the config panel script
             script_dir = os.path.dirname(os.path.abspath(__file__))
             config_panel_path = os.path.join(script_dir, 'corgi_config_panel_dev.py')
             
-            # Launch the config panel
             self.process_config = subprocess.Popen(['python3', config_panel_path])
             self.add_log('Config Panel launched', 'SYSTEM')
         except Exception as e:
             self.add_log(f'Failed to launch Config Panel: {e}', 'ERROR')
 
     def _on_set_zero_completed(self):
-        """Handle set_zero completion"""
         if hasattr(self, 'process_set_zero') and self.process_set_zero is not None:
             self.process_set_zero.wait(timeout=1.0)
             self.process_set_zero = None
         
-        # Re-enable button after completion
         self.btn_set_zero.setEnabled(True)
         self.btn_set_zero.setText('Set Zero')
         self.add_log('Motor zero points set successfully', 'SYSTEM')
 
     def add_log(self, message, level='INFO'):
-        """Add log message with optional level for color coding"""
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
         
-        # Color map for internal logs (matching lower system)
         color_map = {
             'DEBUG': '#2196f3',
             'INFO': '#00e676',
             'WARN': '#ffea00',
             'ERROR': '#ff5252',
             'FATAL': '#d32f2f',
-            'SYSTEM': '#bb86fc',  # Purple for system messages
         }
         color = color_map.get(level, '#ffffff')
-        
-        # Format level to be 5 chars like lower system (e.g., 'INFO ')
+
         level_padded = f'{level:5s}'
         
         log_html = f'<span style="color:#888;">[{timestamp}]</span> '
@@ -726,6 +792,7 @@ class CorgiControlPanel(QWidget):
         self.text_log.verticalScrollBar().setValue(self.text_log.verticalScrollBar().maximum())
 
     def timer_update(self): pass
+
     def closeEvent(self, event):
         try: self.node.destroy_subscription(self.power_state_sub)
         except: pass
@@ -762,6 +829,12 @@ class CorgiControlPanel(QWidget):
             try:
                 self.process_set_zero.send_signal(signal.SIGINT)
                 self.process_set_zero.wait(timeout=1.0)
+            except:
+                pass
+        if hasattr(self, 'process_csv') and self.process_csv is not None:
+            try:
+                self.process_csv.send_signal(signal.SIGINT)
+                self.process_csv.wait(timeout=1.0)
             except:
                 pass
         try: rclpy.try_shutdown()
