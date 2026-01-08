@@ -73,9 +73,6 @@ QPushButton#EstopBtn { background-color: #d32f2f; font-weight: bold; font-size: 
 QPushButton#EstopBtn:hover { background-color: #b71c1c; }
 QPushButton#EstopBtn:pressed { background-color: #8e0000; }
 
-QPushButton#RestBtn:checked { background-color: #2e7d32; } /* Green for ON */
-QPushButton#ConfigBtn:checked { background-color: #f9a825; color: black; } /* Yellow for Config */
-
 QLabel#HeaderLabel { font-size: 18px; font-weight: bold; color: #eee; }
 QLabel#StatusLabel { font-size: 24px; font-weight: bold; color: #4fc3f7; }
 QLabel#MotorLabel { font-size: 12px; color: #aaa; }
@@ -99,6 +96,16 @@ class CorgiControlPanel(QWidget):
             GPIO.setup(self.trigger_pin, GPIO.OUT)
             GPIO.output(self.trigger_pin, GPIO.LOW)
 
+        # Initialize instance variables before UI/ROS (needed for logging)
+        self._robot_cmd_seq = 0
+        self._pending_robot_mode = None  # type: int | None
+        self._last_confirmed_mode = None  # Track last confirmed mode for error recovery
+        self.process_recorder = None  # Track data recorder process
+        self.process_imu = None  # Track IMU process
+        self.process_set_zero = None  # Track set_zero process
+        self.process_csv = None  # Track CSV control process
+        self.min_log_level = LOGLEVEL.DEBUG  # Default: show all logs
+
         self.init_ui()
         self.init_ros()
         
@@ -107,15 +114,6 @@ class CorgiControlPanel(QWidget):
         self.robot_state_signal.connect(self._handle_robot_state_update)
         self.motor_state_signal.connect(self._handle_motor_state_update)
         self.log_state_signal.connect(self._handle_log_update)
-        
-        # Robot command sequencing and pending state tracking
-        self._robot_cmd_seq = 0
-        self._pending_robot_mode = None  # type: int | None
-        self._last_confirmed_mode = None  # Track last confirmed mode for error recovery
-        self.process_recorder = None  # Track data recorder process
-        self.process_imu = None  # Track IMU process
-        self.process_set_zero = None  # Track set_zero process
-        self.process_csv = None  # Track CSV control process
 
         self.reset()
 
@@ -147,7 +145,7 @@ class CorgiControlPanel(QWidget):
         top_bar.addLayout(power_box)
 
         # E-Stop Button (top-right)
-        self.btn_estop = QPushButton('E-STOP')
+        self.btn_estop = QPushButton('< ! >')
         self.btn_estop.setObjectName("EstopBtn")
         self.btn_estop.setMinimumWidth(100)
         self.btn_estop.setMinimumHeight(50)
@@ -191,10 +189,10 @@ class CorgiControlPanel(QWidget):
         grp_fsm_layout.addWidget(mode_container)
 
         # FSM Buttons
-        self.btn_rest = QPushButton('Set to REST')
-        self.btn_rest.setObjectName("RestBtn")
-        self.btn_rest.setCheckable(True)
-        self.btn_rest.clicked.connect(self.set_rest_mode)
+        self.btn_systemon = QPushButton('Set to System ON')
+        self.btn_systemon.setObjectName("SystemOnBtn")
+        self.btn_systemon.setCheckable(True)
+        self.btn_systemon.clicked.connect(self.set_systemon_mode)
         
         self.btn_idle = QPushButton('Set to IDLE')
         self.btn_idle.clicked.connect(self.set_idle_mode)
@@ -206,7 +204,7 @@ class CorgiControlPanel(QWidget):
         self.btn_motorconfig.setObjectName("ConfigBtn")
         self.btn_motorconfig.clicked.connect(self.set_motorconfig_mode)
         
-        grp_fsm_layout.addWidget(self.btn_rest)
+        grp_fsm_layout.addWidget(self.btn_systemon)
         grp_fsm_layout.addWidget(self.btn_idle)
         grp_fsm_layout.addWidget(self.btn_standby)
         grp_fsm_layout.addWidget(self.btn_motorconfig)
@@ -305,9 +303,42 @@ class CorgiControlPanel(QWidget):
         # Log Area
         log_group = QGroupBox("Log")
         log_layout_inner = QVBoxLayout()
+        
+        # Log level filter
+        log_filter_layout = QHBoxLayout()
+        log_filter_label = QLabel('Min Level:')
+        log_filter_label.setStyleSheet('color: #aaa; font-size: 12px;')
+        self.combo_log_level = QComboBox()
+        self.combo_log_level.addItems(['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'])
+        self.combo_log_level.setCurrentIndex(0)  # Default to DEBUG (show all)
+        self.combo_log_level.currentIndexChanged.connect(self._on_log_level_changed)
+        self.combo_log_level.setStyleSheet("""
+            QComboBox {
+                background-color: #404040;
+                border: 1px solid #555;
+                border-radius: 3px;
+                padding: 5px;
+                color: white;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #aaa;
+            }
+        """)
+        log_filter_layout.addWidget(log_filter_label)
+        log_filter_layout.addWidget(self.combo_log_level)
+        log_filter_layout.addStretch(1)
+        
         self.text_log = QTextEdit()
         self.text_log.setReadOnly(True)
         self.text_log.setMaximumHeight(400)
+        
+        log_layout_inner.addLayout(log_filter_layout)
         log_layout_inner.addWidget(self.text_log)
         log_group.setLayout(log_layout_inner)
         main_v_layout.addWidget(log_group)
@@ -320,7 +351,7 @@ class CorgiControlPanel(QWidget):
         self.btn_estop.setEnabled(False)
         self.btn_imu.setEnabled(False)
         self.btn_set_zero.setEnabled(False)
-        self.btn_rest.setEnabled(False)
+        self.btn_systemon.setEnabled(False)
         self.btn_idle.setEnabled(False)
         self.btn_standby.setEnabled(False)
         self.btn_motorconfig.setEnabled(False)
@@ -468,7 +499,7 @@ class CorgiControlPanel(QWidget):
         self._robot_cmd_seq += 1
         self.set_btn_enable()
 
-    def set_rest_mode(self): self._pub_robot_mode(ROBOTMODE.SYSTEM_ON)
+    def set_systemon_mode(self): self._pub_robot_mode(ROBOTMODE.SYSTEM_ON)
     def set_idle_mode(self): self._pub_robot_mode(ROBOTMODE.IDLE)
     def set_standby_mode(self): self._pub_robot_mode(ROBOTMODE.STANDBY)
     def set_motorconfig_mode(self): self._pub_robot_mode(ROBOTMODE.MOTORCONFIG)
@@ -536,7 +567,7 @@ class CorgiControlPanel(QWidget):
         # 2  -> 4  (IDLE -> MOTORCONFIG)
         
         if not bridge_on:
-            self.btn_rest.setEnabled(False)
+            self.btn_systemon.setEnabled(False)
             self.btn_idle.setEnabled(False)
             self.btn_standby.setEnabled(False)
             self.btn_motorconfig.setEnabled(False)
@@ -544,7 +575,7 @@ class CorgiControlPanel(QWidget):
             # ROS Bridge is ON
             if current == -1:
                 # No state yet: only Idle and Config are enabled as initial options
-                self.btn_rest.setEnabled(False)
+                self.btn_systemon.setEnabled(False)
                 self.btn_idle.setEnabled(True)
                 self.btn_standby.setEnabled(False)
                 self.btn_motorconfig.setEnabled(True)
@@ -556,7 +587,7 @@ class CorgiControlPanel(QWidget):
                 # CONFIG (4): can go to 0(SYSTEM_ON), 2(IDLE)
                 
                 # System ON Button: can enter from 2, 4; can exit from 0 (to 2)
-                self.btn_rest.setEnabled(current in [ROBOTMODE.IDLE, ROBOTMODE.MOTORCONFIG])
+                self.btn_systemon.setEnabled(current in [ROBOTMODE.INIT, ROBOTMODE.IDLE, ROBOTMODE.MOTORCONFIG])
                 
                 # Idle Button: can enter from 0, 3
                 self.btn_idle.setEnabled(current in [ROBOTMODE.SYSTEM_ON, ROBOTMODE.STANDBY])
@@ -625,7 +656,7 @@ class CorgiControlPanel(QWidget):
         self.set_btn_enable()
 
     def reset(self):
-        self.btn_rest.setChecked(False)
+        self.btn_systemon.setChecked(False)
         self.btn_trigger.setChecked(False)
         self.publish_trigger_cmd()
 
@@ -663,6 +694,20 @@ class CorgiControlPanel(QWidget):
         level = log_msg.level
         node_name = log_msg.node_name if hasattr(log_msg, 'node_name') else 'unknown'
         message = log_msg.message if hasattr(log_msg, 'message') else ''
+
+        # Filter based on minimum log level
+        if level < self.min_log_level:
+            # Still process special messages for Set Zero completion
+            if node_name == 'corgi_set_zero' and 'Set Zero Completed' in message:
+                self._on_set_zero_completed()
+            # Still handle error recovery
+            if level in [LOGLEVEL.ERROR, LOGLEVEL.FATAL]:
+                if self._pending_robot_mode is not None:
+                    reverted_mode = ROBOTMODE(self._pending_robot_mode).name if self._pending_robot_mode in ROBOTMODE.__members__.values() else str(self._pending_robot_mode)
+                    self.add_log(f'Command to {reverted_mode} failed - system reverted', 'WARN')
+                    self._pending_robot_mode = None
+                    self.set_btn_enable()
+            return
 
         if hasattr(log_msg.header, 'stamp'):
             stamp = log_msg.header.stamp
@@ -746,6 +791,18 @@ class CorgiControlPanel(QWidget):
                     if temp > 60: self.motor_labels[key].setStyleSheet("color: #ff5252; font-weight: bold;")
                     else: self.motor_labels[key].setStyleSheet("color: #aaa;")
 
+    def _on_log_level_changed(self, index):
+        level_map = {
+            0: LOGLEVEL.DEBUG,
+            1: LOGLEVEL.INFO,
+            2: LOGLEVEL.WARN,
+            3: LOGLEVEL.ERROR,
+            4: LOGLEVEL.FATAL
+        }
+        self.min_log_level = level_map.get(index, LOGLEVEL.DEBUG)
+        level_name = ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'][index]
+        self.add_log(f'Log filter set to {level_name} and above', 'INFO')
+
     def launch_config_panel(self):
         try:
             if hasattr(self, 'process_config') and self.process_config is not None and self.process_config.poll() is None:
@@ -756,7 +813,7 @@ class CorgiControlPanel(QWidget):
             config_panel_path = os.path.join(script_dir, 'corgi_config_panel_dev.py')
             
             self.process_config = subprocess.Popen(['python3', config_panel_path])
-            self.add_log('Config Panel launched', 'SYSTEM')
+            self.add_log('Config Panel launched', 'INFO')
         except Exception as e:
             self.add_log(f'Failed to launch Config Panel: {e}', 'ERROR')
 
@@ -767,9 +824,23 @@ class CorgiControlPanel(QWidget):
         
         self.btn_set_zero.setEnabled(True)
         self.btn_set_zero.setText('Set Zero')
-        self.add_log('Motor zero points set successfully', 'SYSTEM')
+        self.add_log('Motor zero points set successfully', 'INFO')
 
     def add_log(self, message, level='INFO'):
+        # Convert string level to LOGLEVEL enum for filtering
+        level_str_to_enum = {
+            'DEBUG': LOGLEVEL.DEBUG,
+            'INFO': LOGLEVEL.INFO,
+            'WARN': LOGLEVEL.WARN,
+            'ERROR': LOGLEVEL.ERROR,
+            'FATAL': LOGLEVEL.FATAL,
+        }
+        level_enum = level_str_to_enum.get(level, LOGLEVEL.INFO)
+        
+        # Filter based on minimum log level
+        if level_enum < self.min_log_level:
+            return
+        
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
         
         color_map = {
