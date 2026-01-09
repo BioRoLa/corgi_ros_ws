@@ -5,6 +5,7 @@ import threading
 import subprocess
 import signal
 import numpy as np
+import logging
 from datetime import datetime
 from enum import IntEnum
 
@@ -105,6 +106,19 @@ class CorgiControlPanel(QWidget):
         self.process_set_zero = None  # Track set_zero process
         self.process_csv = None  # Track CSV control process
         self.min_log_level = LOGLEVEL.DEBUG  # Default: show all logs
+
+        # Set up file logging
+        self.log_dir = '/home/biorola/corgi_ws/control_log'
+        os.makedirs(self.log_dir, exist_ok=True)
+        self.temp_log_path = os.path.join(self.log_dir, 'temp_log.log')
+        self.file_logger = logging.getLogger('CorgiControlPanel')
+        self.file_logger.setLevel(logging.DEBUG)
+        self.file_handler = logging.FileHandler(self.temp_log_path, mode='w')
+        self.file_handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('[%(asctime)s] [%(levelname)-5s] [%(name)s] %(message)s', 
+                                     datefmt='%Y-%m-%d %H:%M:%S')
+        self.file_handler.setFormatter(formatter)
+        self.file_logger.addHandler(self.file_handler)
 
         self.init_ui()
         self.init_ros()
@@ -724,6 +738,17 @@ class CorgiControlPanel(QWidget):
         }
         
         level_name, color = level_map.get(level, ('UNKNOWN', '#ffffff'))
+        
+        # Always log to file regardless of filter
+        file_level_map = {
+            LOGLEVEL.DEBUG: logging.DEBUG,
+            LOGLEVEL.INFO: logging.INFO,
+            LOGLEVEL.WARN: logging.WARNING,
+            LOGLEVEL.ERROR: logging.ERROR,
+            LOGLEVEL.FATAL: logging.CRITICAL,
+        }
+        file_log_level = file_level_map.get(level, logging.INFO)
+        self.file_logger.log(file_log_level, f'[{node_name}] {message}')
 
         log_html = f'<span style="color:#888;">[{timestamp}]</span> '
         log_html += f'<span style="color:{color}; font-weight:bold;">[{level_name}]</span> '
@@ -837,7 +862,18 @@ class CorgiControlPanel(QWidget):
         }
         level_enum = level_str_to_enum.get(level, LOGLEVEL.INFO)
         
-        # Filter based on minimum log level
+        # Always log to file regardless of filter
+        logging_level_map = {
+            'DEBUG': logging.DEBUG,
+            'INFO': logging.INFO,
+            'WARN': logging.WARNING,
+            'ERROR': logging.ERROR,
+            'FATAL': logging.CRITICAL,
+        }
+        file_log_level = logging_level_map.get(level, logging.INFO)
+        self.file_logger.log(file_log_level, f'[orin] {message}')
+        
+        # Filter based on minimum log level for GUI display
         if level_enum < self.min_log_level:
             return
         
@@ -865,6 +901,18 @@ class CorgiControlPanel(QWidget):
     def timer_update(self): pass
 
     def closeEvent(self, event):
+        # Close file logger and rename with timestamp
+        try:
+            close_time = datetime.now().strftime('%Y%m%d_%H%M%S')
+            self.file_handler.close()
+            self.file_logger.removeHandler(self.file_handler)
+            final_log_path = os.path.join(self.log_dir, f'log_{close_time}.log')
+            if os.path.exists(self.temp_log_path):
+                os.rename(self.temp_log_path, final_log_path)
+                print(f'Log saved to: {final_log_path}')
+        except Exception as e:
+            print(f'Error saving log file: {e}')
+        
         try: self.node.destroy_subscription(self.power_state_sub)
         except: pass
         try: self.node.destroy_subscription(self.robot_state_sub)
