@@ -632,12 +632,16 @@ class CorgiControlPanel(QWidget):
                 self.btn_csv_run.setChecked(False)
                 self.btn_csv_run.setText('Run')
                 return
+            # Extract filename without path and .csv extension
+            csv_filename = os.path.basename(csv_file)
+            if csv_filename.endswith('.csv'):
+                csv_filename = csv_filename[:-4]
             try:
                 if hasattr(self, 'process_csv') and self.process_csv is not None and self.process_csv.poll() is None:
                     self.add_log('CSV Control already running; skip start', 'WARN')
                     return
-                self.process_csv = subprocess.Popen(['ros2', 'run', 'corgi_csv_control', 'corgi_csv_control', csv_file])
-                self.add_log(f'CSV Control Started with file: {csv_file}', 'INFO')
+                self.process_csv = subprocess.Popen(['ros2', 'run', 'corgi_csv_control', 'corgi_csv_control', csv_filename])
+                self.add_log(f'CSV Control Started with file: {csv_filename}', 'INFO')
             except Exception as e:
                 self.add_log(f'Failed to start CSV Control: {e}', 'ERROR')
                 self.btn_csv_run.setChecked(False)
