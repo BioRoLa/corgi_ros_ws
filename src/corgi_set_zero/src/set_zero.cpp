@@ -22,6 +22,7 @@ int main(int argc, char **argv) {
     auto motor_cmd_pub = node->create_publisher<corgi_msgs::msg::MotorCmdStamped>("motor/command", 1000);
     auto motor_state_sub = node->create_subscription<corgi_msgs::msg::MotorStateStamped>("motor/state", 1000, motor_state_cb);
     rclcpp::Rate rate(1000);
+    rclcpp::spin_some(node);
 
     corgi_msgs::msg::MotorCmdStamped motor_cmd;
 
