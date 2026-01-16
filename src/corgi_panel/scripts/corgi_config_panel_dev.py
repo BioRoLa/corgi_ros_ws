@@ -423,17 +423,17 @@ class MainWindow(QWidget):
         self.param_widget.set_all_enabled(False)
         self.status_label.setText(f"Writing {name}...")
         
+        # [UPDATED] Simplified pending write structure
         self.pending_write = {
             'name': name,
             'target_val': val,
             'param': param,
-            'state': 'WAIT_WRITE_ACK',
             'seq_sent': 0  # To store the sequence ID we sent
         }
 
         self.add_log(f"Writing {name} = {val}", LOGLEVEL.INFO, "orin")
         
-        # 6. Step 1: Send Write Request
+        # Send Write Request
         sent_seq = self.send_config_cmd(ConfigMode.WRITE, param.data_type, param.address, val)
         self.pending_write['seq_sent'] = sent_seq
         self.tx_timer.start(500)
@@ -471,28 +471,31 @@ class MainWindow(QWidget):
         return self.seq_counter
 
     def handle_ros_msg(self, msg):
-        # 2. Check SEQ match & 1. Check Error Code
-        
-        is_seq_match = (msg.header.seq == self.seq_counter)
+        # --- [FIX] Filter mismatching sequence IDs ---
+        # This prevents processing junk messages with seq=0 or delayed responses
+        if msg.header.seq != self.seq_counter:
+            return
+
+        # At this point, we are sure the message corresponds to the latest request
         error_code = msg.error_code
         error_name = ErrorCode(error_code).name if error_code in ErrorCode.__members__.values() else f"ERR_{error_code}"
 
-        # Debug log for incoming
+        # Debug log for valid incoming message
         self.add_log(f"REPLY SEQ:{msg.header.seq} ERR:{error_code}({error_name}) V:{msg.value_f:.2f}", LOGLEVEL.DEBUG, "fpga_driver")
 
         # --- Priority 1: Handle Read Queue (Scanning) ---
         if self.load_queue:
             req_type, req_addr = self.load_queue[0]
             
-            # 2. Strict Match: Type, Addr AND Seq
-            if is_seq_match and msg.type == int(req_type) and msg.address == req_addr:
+            # Since we filtered seq above, we just check Type and Address match
+            if msg.type == int(req_type) and msg.address == req_addr:
                 self.tx_timer.stop()
                 self.load_queue.popleft()
                 
-                # 4. Break on Error
+                # Check for error
                 if error_code != ErrorCode.CODE_CONFIG_SUCCESS:
                     self.add_log(f"Read Error on {req_type.name}:{req_addr}: {error_name}", LOGLEVEL.ERROR, "fpga_driver")
-                    # Directly break/continue to next item, do not retry
+                    # Continue to next item even if error occurs
                 else:
                     # Success
                     param = self.registry.get_by_type_and_address(req_type, req_addr)
@@ -507,59 +510,47 @@ class MainWindow(QWidget):
 
         # --- Priority 2: Handle Write Transaction ---
         if self.pending_write:
-            self._handle_write_logic(msg, is_seq_match, error_code)
+            # We already confirmed seq match, so we pass True
+            self._handle_write_logic(msg, is_seq_match=True, error_code=error_code)
 
     def _handle_write_logic(self, msg, is_seq_match, error_code):
+        # [UPDATED] Simplified write logic: Check Seq -> Check Err -> Check Value match
         tx = self.pending_write
         param = tx['param']
         
-        # Check if message targets the current param
+        # 1. Basic check: Ensure msg targets the current parameter
         if ConfigType(msg.type) != param.data_type or msg.address != param.address:
             return 
             
+        # 2. Sequence check (passed from caller)
         if not is_seq_match:
-            # Ignore old/unrelated messages
             return
 
-        if tx['state'] == 'WAIT_WRITE_ACK':
-            # 6. Step 2: Receive Write Reply & Check Error
-            if error_code != ErrorCode.CODE_CONFIG_SUCCESS:
-                self.add_log(f"Write Ack Failed: {ErrorCode(error_code).name}", LOGLEVEL.ERROR, "fpga_driver")
-                self.end_transaction(success=False, msg=f"Write Error: {ErrorCode(error_code).name}")
-                return
+        # 3. Check Error Code
+        if error_code != ErrorCode.CODE_CONFIG_SUCCESS:
+            error_name = ErrorCode(error_code).name if error_code in ErrorCode.__members__.values() else f"ERR_{error_code}"
+            self.add_log(f"Write Failed: {error_name}", LOGLEVEL.ERROR, "fpga_driver")
+            self.end_transaction(success=False, msg=f"Write Error: {error_name}")
+            return
 
-            self.add_log("Write Ack OK. Verifying...", LOGLEVEL.INFO, "fpga_driver")
-            tx['state'] = 'WAIT_READ_VERIFY'
-            
-            # 6. Step 3: Send Read Request
-            sent_seq = self.send_config_cmd(ConfigMode.READ, param.data_type, param.address, 0)
-            tx['seq_sent'] = sent_seq  # Update expected SEQ
-            self.tx_timer.start(500)
-            
-        elif tx['state'] == 'WAIT_READ_VERIFY':
-            # 6. Step 4: Receive Read Reply & Check Error
-            if error_code != ErrorCode.CODE_CONFIG_SUCCESS:
-                self.add_log(f"Verify Read Failed: {ErrorCode(error_code).name}", LOGLEVEL.ERROR, "fpga_driver")
-                self.end_transaction(success=False, msg="Verify Read Error")
-                return
-                
-            # 6. Step 5: Compare Values
-            received_val = msg.value_i if param.data_type == ConfigType.INT else msg.value_f
-            target_val = tx['target_val']
-            
-            is_match = False
-            if param.data_type == ConfigType.INT:
-                is_match = (received_val == int(target_val))
-            else:
-                is_match = abs(received_val - float(target_val)) < 0.001
-            
-            if is_match:
-                self.add_log(f"Write Success: {param.name} -> {received_val}", LOGLEVEL.INFO, "system")
-                self.param_widget.update_field_from_motor(param.name, received_val)
-                self.end_transaction(success=True)
-            else:
-                self.add_log(f"Mismatch! Set: {target_val}, Got: {received_val}", LOGLEVEL.ERROR, "system")
-                self.end_transaction(success=False, msg=f"Mismatch: {target_val} != {received_val}")
+        # 4. Check if echoed value matches target value
+        received_val = msg.value_i if param.data_type == ConfigType.INT else msg.value_f
+        target_val = tx['target_val']
+        
+        is_match = False
+        if param.data_type == ConfigType.INT:
+            is_match = (received_val == int(target_val))
+        else:
+            # Floating point tolerance check
+            is_match = abs(received_val - float(target_val)) < 0.001
+        
+        if is_match:
+            self.add_log(f"Write Success (Ack): {param.name} -> {received_val}", LOGLEVEL.INFO, "system")
+            self.param_widget.update_field_from_motor(param.name, received_val)
+            self.end_transaction(success=True)
+        else:
+            self.add_log(f"Write Mismatch! Sent: {target_val}, Echo: {received_val}", LOGLEVEL.ERROR, "system")
+            self.end_transaction(success=False, msg=f"Mismatch: Sent {target_val} != Got {received_val}")
 
     def end_transaction(self, success, msg=""):
         self.pending_write = None
