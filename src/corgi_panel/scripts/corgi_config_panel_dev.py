@@ -379,7 +379,7 @@ class MainWindow(QWidget):
 
         # We set current_seq in send_config_cmd
         self.send_config_cmd(ConfigMode.READ, c_type, addr, 0)
-        self.tx_timer.start(500)
+        self.tx_timer.start(3000)
 
     def finish_loading(self):
         if self.successful_reads == 0:
@@ -436,7 +436,7 @@ class MainWindow(QWidget):
         # Send Write Request
         sent_seq = self.send_config_cmd(ConfigMode.WRITE, param.data_type, param.address, val)
         self.pending_write['seq_sent'] = sent_seq
-        self.tx_timer.start(500)
+        self.tx_timer.start(3000)
 
     # --- Communication Core ---
     def send_config_cmd(self, mode, c_type, addr, val):
@@ -559,7 +559,7 @@ class MainWindow(QWidget):
             QMessageBox.critical(self, "Write Failed", msg)
             self.status_label.setText("Write Failed")
         else:
-            self.status_label.setText("Ready")
+            self.status_label.setText("Write Successful")
         self.param_widget.set_all_enabled(True)
 
     def handle_timeout(self):
